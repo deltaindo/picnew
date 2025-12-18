@@ -11,10 +11,7 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
-
-EXPOSE 5000
+EXPOSE 3000
 
 # Use dev mode for hot reload
 CMD ["npm", "run", "dev"]
