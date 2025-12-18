@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users - Admin accounts
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  phone     String?
+  role      String    @default("admin")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links     RegistrationLink[]
+  auditLogs AuditLog[]
+}
+
+// Bidang - Sectors/Fields (e.g., LISTRIK, PAA, K3 UMUM)
+model Bidang {
+  id          Int                  @id @default(autoincrement())
+  name        String               @unique
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  trainingPrograms TrainingProgram[]
+}
+
+// Training Programs (e.g., K3 LISTRIK, AHLI K3 UMUM)
+model TrainingProgram {
+  id               Int                  @id @default(autoincrement())
+  name             String               @unique
+  description      String?
+  bidangId         Int
+  bidang           Bidang               @relation(fields: [bidangId], references: [id], onDelete: Cascade)
+  durationDays     Int
+  minParticipants  Int                  @default(8)
+  maxParticipants  Int                  @default(25)
+  status           String               @default("active") // active, inactive
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  links RegistrationLink[]
+
+  @@index([bidangId])
+}
+
+// Training Classes (e.g., AHLI, OPERATOR, TEKNISI)
+model TrainingClass {
+  id        Int                  @id @default(autoincrement())
+  name      String               @unique
+  level     Int                  @default(1)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  links RegistrationLink[]
+}
+
+// Personnel Types (e.g., OPERATOR, TEKNISI, AHLI K3)
+model PersonnelType {
+  id        Int                  @id @default(autoincrement())
+  name      String               @unique
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  links RegistrationLink[]
+}
+
+// Equipment Types (e.g., MOBILE CRANE, TOWER CRANE)
+model EquipmentType {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  bidangId  Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Registration Links - Created by admin
+model RegistrationLink {
+  id                   Int       @id @default(autoincrement())
+  uniqueToken          String    @unique @default(uuid())
+  trainingProgramId    Int
+  trainingProgram      TrainingProgram  @relation(fields: [trainingProgramId], references: [id], onDelete: Cascade)
+  trainingClassId      Int
+  trainingClass        TrainingClass    @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
+  personnelTypeId      Int
+  personnelType        PersonnelType    @relation(fields: [personnelTypeId], references: [id], onDelete: Cascade)
+  createdByAdminId     Int
+  createdByAdmin       User     @relation(fields: [createdByAdminId], references: [id])
+  status               String   @default("active") // active, expired, filled
+  maxRegistrations     Int
+  currentRegistrations Int      @default(0)
+  expiryDate           DateTime
+  waGroupLink          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  registrations        Registration[]
+  requiredDocuments    RequiredDocument[]
+
+  @@index([trainingProgramId])
+  @@index([createdByAdminId])
+}
+
+// Required Documents per Link
+model RequiredDocument {
+  id                 Int       @id @default(autoincrement())
+  registrationLinkId Int
+  registrationLink   RegistrationLink @relation(fields: [registrationLinkId], references: [id], onDelete: Cascade)
+  documentType       String    // surat, ijazah, ktp, sk, foto, bukti
+  displayName        String
+  isRequired         Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+
+  @@index([registrationLinkId])
+}
+
+// Registrations - Trainee submissions
+model Registration {
+  id                   Int       @id @default(autoincrement())
+  registrationLinkId   Int
+  registrationLink     RegistrationLink @relation(fields: [registrationLinkId], references: [id], onDelete: Cascade)
+  fullName             String
+  nik                  String?
+  email                String
+  phone                String?
+  birthDate            DateTime?
+  bloodType            String?
+  educationLevel       String?
+  companyName          String?
+  jobTitle             String?
+  address              String?
+  submissionStatus     String   @default("submitted") // submitted, incomplete, approved, rejected
+  submittedAt          DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  documents    TraineeDocument[]
+  certificate  Certificate?
+  notifications Notification[]
+
+  @@index([registrationLinkId])
+}
+
+// Trainee Documents
+model TraineeDocument {
+  id             Int       @id @default(autoincrement())
+  registrationId Int
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  documentType   String    // surat, ijazah, ktp, sk, foto, bukti
+  filePath       String    // S3 key
+  fileName       String
+  fileSize       BigInt?
+  mimeType       String?
+  uploadStatus   String   @default("uploaded") // uploaded, verified, rejected
+  uploadedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([registrationId])
+}
+
+// Certificates
+model Certificate {
+  id               Int       @id @default(autoincrement())
+  registrationId   Int       @unique
+  registration     Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  certificateNumber String   @unique
+  trainingNameId   String?
+  trainingNameEn   String?
+  issueDate        DateTime
+  validityYears    Int      @default(2)
+  pdfFilePath      String
+  verificationCode String   @unique @default(cuid())
+  status           String   @default("issued") // issued, pending, revoked
+  issuedAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([registrationId])
+}
+
+// Notifications
+model Notification {
+  id             Int       @id @default(autoincrement())
+  registrationId Int?
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  type           String    // email, whatsapp
+  recipient      String
+  subject        String?
+  content        String?
+  status         String   @default("sent") // sent, failed, pending
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([registrationId])
+  @@index([status])
+}
+
+// Audit Logs
+model AuditLog {
+  id         Int       @id @default(autoincrement())
+  userId     Int?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String    // create_link, submit_registration, upload_doc, verify_doc, issue_certificate
+  entityType String?
+  entityId   Int?
+  changes    Json?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}

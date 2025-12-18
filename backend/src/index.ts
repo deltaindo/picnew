@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import adminRoutes from './routes/admin';
 import logger from './utils/logger';
 
 dotenv.config();
@@ -23,9 +24,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// TODO: Add routes
-// app.use('/api/admin', adminRoutes);
-// app.use('/api/public', publicRoutes);
+// Routes
+app.use('/api/admin', adminRoutes);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
 
 // Error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -39,6 +44,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
   logger.info(`✓ Server running on port ${PORT}`);
   logger.info(`✓ Environment: ${NODE_ENV}`);
+  logger.info(`✓ API: http://localhost:${PORT}/api`);
 });
 
 export default app;
