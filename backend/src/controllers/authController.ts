@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 
@@ -25,16 +25,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const jwtExpiry: string | number = process.env.JWT_EXPIRY || '24h';
-    
-    const signOptions: SignOptions = {
-      expiresIn: jwtExpiry,
-    };
+    const jwtExpiry = process.env.JWT_EXPIRY || '24h';
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       jwtSecret,
-      signOptions
+      { expiresIn: jwtExpiry }
     );
 
     logger.info(`User logged in: ${user.email}`);
