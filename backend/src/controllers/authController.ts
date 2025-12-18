@@ -25,7 +25,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const jwtExpiry = process.env.JWT_EXPIRY || '24h';
+    const jwtExpiry: string | number = process.env.JWT_EXPIRY || '24h';
     
     const signOptions: SignOptions = {
       expiresIn: jwtExpiry,
