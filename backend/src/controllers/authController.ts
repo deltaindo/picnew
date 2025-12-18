@@ -25,12 +25,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const jwtExpiry = process.env.JWT_EXPIRY || '24h';
 
+    // Sign JWT token with 24h expiry
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       jwtSecret,
-      { expiresIn: jwtExpiry }
+      { expiresIn: process.env.JWT_EXPIRY || '24h' }
     );
 
     logger.info(`User logged in: ${user.email}`);
