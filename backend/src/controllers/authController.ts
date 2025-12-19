@@ -11,17 +11,26 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password required',
+      });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -37,17 +46,23 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+      message: 'Login successful',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
       },
     });
   } catch (error) {
     logger.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({
+      success: false,
+      message: 'Login failed',
+    });
   }
 };
 
@@ -59,12 +74,21 @@ export const me = async (req: any, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
     }
 
-    res.json({ success: true, user });
+    res.json({
+      success: true,
+      data: user,
+    });
   } catch (error) {
     logger.error('Me error:', error);
-    res.status(500).json({ error: 'Failed to get user info' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user info',
+    });
   }
 };
