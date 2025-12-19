@@ -5,16 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 
-// Lucide icons - using string as fallback if import fails
+// Emoji icons for navigation
 const icons = {
-  Menu: () => <span>☰</span>,
-  X: () => <span>✕</span>,
-  LogOut: () => <span>⏏</span>,
-  LayoutDashboard: () => <span>▤</span>,
-  Link: () => <span>🔗</span>,
-  Calendar: () => <span>📅</span>,
-  Users: () => <span>👥</span>,
-  Settings: () => <span>⚙</span>,
+  dashboard: '\ud83c\udfe0',
+  link: '\ud83d\udd17',
+  calendar: '\ud83d\udcc5',
+  users: '\ud83d\udc65',
+  settings: '\u2699\ufe0f',
+  logout: '\ud83d\udeaa',
 };
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
@@ -39,11 +37,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const isActive = (path: string) => router.pathname === path;
 
   const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: 'LayoutDashboard' },
-    { name: 'Link Pendaftaran', href: '/admin/links', icon: 'Link' },
-    { name: 'Jadwal', href: '/admin/jadwal', icon: 'Calendar' },
-    { name: 'Admin', href: '/admin/users', icon: 'Users' },
-    { name: 'Master Data', href: '/admin/master-data', icon: 'Settings' },
+    { name: 'Dashboard', href: '/admin', icon: icons.dashboard },
+    { name: 'Link Pendaftaran', href: '/admin/links', icon: icons.link },
+    { name: 'Jadwal', href: '/admin/jadwal', icon: icons.calendar },
+    { name: 'Admin', href: '/admin/users', icon: icons.users },
+    { name: 'Master Data', href: '/admin/master-data', icon: icons.settings },
   ];
 
   if (!mounted) return null;
@@ -62,7 +60,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             {sidebarOpen && (
               <div className="text-center">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <span className="text-white font-bold text-lg">Δ</span>
+                  <span className="text-white font-bold text-lg">\u0394</span>
                 </div>
                 <h1 className="text-white text-sm font-semibold">DELTA</h1>
                 <p className="text-[#8fa3b8] text-xs">Training</p>
@@ -70,10 +68,10 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-[#8fa3b8] hover:text-white ml-auto md:hidden"
+              className="text-[#8fa3b8] hover:text-white ml-auto md:hidden text-lg"
               title="Toggle sidebar"
             >
-              {sidebarOpen ? '✕' : '☰'}
+              {sidebarOpen ? '\u2715' : '\u2630'}
             </button>
           </div>
         </div>
@@ -81,21 +79,17 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         {/* Navigation Items */}
         <nav className="flex-1 px-3 py-6 space-y-2">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <a
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-[#8fa3b8] hover:bg-[#2d3e52] hover:text-white'
-                }`}
-              >
-                <span className="text-lg">{item.icon === 'LayoutDashboard' && '▤'}</span>
-                <span className="text-lg">{item.icon === 'Link' && '🔗'}</span>
-                <span className="text-lg">{item.icon === 'Calendar' && '📅'}</span>
-                <span className="text-lg">{item.icon === 'Users' && '👥'}</span>
-                <span className="text-lg">{item.icon === 'Settings' && '⚙'}</span>
-                {sidebarOpen && <span className="text-sm font-medium">{item.name}</span>}
-              </a>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive(item.href)
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[#8fa3b8] hover:bg-[#2d3e52] hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{item.icon}</span>
+              {sidebarOpen && <span className="text-sm font-medium">{item.name}</span>}
             </Link>
           ))}
         </nav>
@@ -106,7 +100,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#8fa3b8] hover:text-red-400 hover:bg-[#2d3e52] transition-colors"
           >
-            <span className="text-lg">⏏</span>
+            <span className="text-lg">{icons.logout}</span>
             {sidebarOpen && <span className="text-sm font-medium">Log Out</span>}
           </button>
         </div>
@@ -117,7 +111,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         {/* Header */}
         <header className="bg-[#233347] border-b border-[#2d3e52] px-6 md:px-8 py-4 flex items-center justify-between">
           <div className="flex-1">
-            <h2 className="text-white text-lg md:text-xl font-semibold">Welcome, Admin 👋</h2>
+            <h2 className="text-white text-lg md:text-xl font-semibold">Welcome, Admin \ud83d\udc4b</h2>
           </div>
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold cursor-pointer hover:shadow-lg transition-shadow">
