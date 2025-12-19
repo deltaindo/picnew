@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
-import { Calendar, AlertCircle, BarChart3, FileText, Copy, Settings } from 'lucide-react';
 
 interface DashboardStats {
   activeLinks: number;
@@ -55,7 +54,7 @@ export default function AdminDashboard() {
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">Hello Aryo, 👋</h1>
                 <div className="flex items-center gap-2 text-[#8fa3b8]">
-                  <AlertCircle size={16} />
+                  <span>⚠️</span>
                   <span className="text-sm">3 certificates are expiring today</span>
                 </div>
               </div>
@@ -96,8 +95,8 @@ export default function AdminDashboard() {
                 <p className="text-[#8fa3b8] text-xs font-medium uppercase">Active Links</p>
                 <p className="text-white text-2xl font-bold mt-2">{stats.activeLinks}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-500 bg-opacity-20 flex items-center justify-center">
-                <BarChart3 className="text-blue-400" size={24} />
+              <div className="w-12 h-12 rounded-lg bg-blue-500 bg-opacity-20 flex items-center justify-center text-xl">
+                📊
               </div>
             </div>
           </div>
@@ -108,8 +107,8 @@ export default function AdminDashboard() {
                 <p className="text-[#8fa3b8] text-xs font-medium uppercase">Total Registrations</p>
                 <p className="text-white text-2xl font-bold mt-2">{stats.totalRegistrations}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-green-500 bg-opacity-20 flex items-center justify-center">
-                <FileText className="text-green-400" size={24} />
+              <div className="w-12 h-12 rounded-lg bg-green-500 bg-opacity-20 flex items-center justify-center text-xl">
+                📄
               </div>
             </div>
           </div>
@@ -120,8 +119,8 @@ export default function AdminDashboard() {
                 <p className="text-[#8fa3b8] text-xs font-medium uppercase">Pending Documents</p>
                 <p className="text-white text-2xl font-bold mt-2">{stats.pendingDocuments}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-yellow-500 bg-opacity-20 flex items-center justify-center">
-                <AlertCircle className="text-yellow-400" size={24} />
+              <div className="w-12 h-12 rounded-lg bg-yellow-500 bg-opacity-20 flex items-center justify-center text-xl">
+                ⚠️
               </div>
             </div>
           </div>
@@ -132,8 +131,8 @@ export default function AdminDashboard() {
                 <p className="text-[#8fa3b8] text-xs font-medium uppercase">Expiring Soon</p>
                 <p className="text-white text-2xl font-bold mt-2">{stats.certificatesExpiring}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-red-500 bg-opacity-20 flex items-center justify-center">
-                <Calendar className="text-red-400" size={24} />
+              <div className="w-12 h-12 rounded-lg bg-red-500 bg-opacity-20 flex items-center justify-center text-xl">
+                📅
               </div>
             </div>
           </div>
@@ -145,7 +144,7 @@ export default function AdminDashboard() {
           <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold">Link Pendaftaran</h3>
-              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors">⋯</button>
+              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors" title="More options">⋯</button>
             </div>
             <div className="flex flex-col items-center justify-center py-8">
               <div className="relative w-32 h-32 mb-4">
@@ -193,7 +192,7 @@ export default function AdminDashboard() {
           <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold">Activity Log</h3>
-              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors">⋯</button>
+              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors" title="More options">⋯</button>
             </div>
             <div className="space-y-4 max-h-56 overflow-y-auto">
               <div className="pb-4 border-b border-[#2d3e52]">
@@ -268,12 +267,12 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       <button className="text-[#8fa3b8] hover:text-blue-400 transition-colors" title="Copy link">
-                        <Copy size={16} />
+                        📋
                       </button>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button className="text-[#8fa3b8] hover:text-white transition-colors" title="Settings">
-                        <Settings size={16} />
+                        ⚙️
                       </button>
                     </td>
                   </tr>
