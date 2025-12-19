@@ -20,20 +20,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Test database connection on startup
-pool.query('SELECT NOW()', (err, result) => {
-  if (err) {
-    console.error('\n❌ DATABASE CONNECTION FAILED');
-    console.error('Error:', err.message);
-    console.error('Connection details:');
-    console.error('  Host:', process.env.DB_HOST || 'localhost');
-    console.error('  Port:', process.env.DB_PORT || 5432);
-    console.error('  Database:', process.env.DB_NAME || 'pic_app');
-    console.error('  User:', process.env.DB_USER || 'postgres');
-    console.error('\nFix: Make sure PostgreSQL is running and database exists');
-  } else {
-    console.log('✅ Database connected successfully');
-  }
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  next();
 });
 
 // Health check endpoint
@@ -73,33 +64,32 @@ app.get('/api', (req, res) => {
 });
 
 // API Routes
-console.log('\n📋 Registering routes...');
+console.log('\n📋 Registering API routes...');
 
 app.use('/api/admin/auth', authRoutes);
-console.log('✅ /api/admin/auth registered');
+console.log('   ✅ /api/admin/auth');
 
 app.use('/api/admin/training', trainingRoutes);
-console.log('✅ /api/admin/training registered');
+console.log('   ✅ /api/admin/training');
 
 app.use('/api/admin/links', linkRoutes);
-console.log('✅ /api/admin/links registered');
+console.log('   ✅ /api/admin/links');
 
 app.use('/api/admin/registrations', registrationRoutes);
-console.log('✅ /api/admin/registrations registered');
+console.log('   ✅ /api/admin/registrations');
 
 app.use('/api/admin/master-data', masterDataRoutes);
-console.log('✅ /api/admin/master-data registered');
+console.log('   ✅ /api/admin/master-data');
 
 app.use('/api/public', publicRoutes);
-console.log('✅ /api/public registered');
+console.log('   ✅ /api/public');
 
 // Error handling middleware (MUST be after all routes)
 app.use((err, req, res, next) => {
-  console.error('\n❌ ERROR:');
+  console.error('\n❌ ERROR HANDLER TRIGGERED');
   console.error('Path:', req.path);
   console.error('Method:', req.method);
-  console.error('Error:', err.message);
-  console.error(err.stack);
+  console.error('Message:', err.message);
 
   res.status(500).json({
     success: false,
@@ -111,32 +101,39 @@ app.use((err, req, res, next) => {
 // 404 handler (MUST be last)
 app.use((req, res) => {
   console.error('\n⚠️  404 - Route not found');
-  console.error('Path:', req.path);
-  console.error('Method:', req.method);
+  console.error('Requested:', `${req.method} ${req.path}`);
 
   res.status(404).json({
     success: false,
     message: 'Route not found',
     path: req.path,
     method: req.method,
-    hint: 'Check that you\'re using a valid endpoint. Try GET /api for available endpoints.',
+    hint: 'Check endpoint. Try GET /api for available endpoints.',
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🚀 PIC App Backend`);
-  console.log(`${'='.repeat(60)}`);
-  console.log(`Port:        ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Database:    ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'pic_app'}`);
-  console.log(`${'='.repeat(60)}`);
-  console.log('\n📌 Test endpoints:');
-  console.log(`   GET    http://localhost:${PORT}/health`);
-  console.log(`   GET    http://localhost:${PORT}/api`);
-  console.log('\n✅ Ready to receive requests!\n');
+  console.log(`\n${'='.repeat(70)}`);
+  console.log(`🚀 PIC APP BACKEND - STARTED`);
+  console.log(`${'='.repeat(70)}`);
+  console.log(`\n📊 Configuration:`);
+  console.log(`   Port:        ${PORT}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   Database:    ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'pic_app'}`);
+  console.log(`   Frontend:    ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  console.log(`\n🔗 Test Endpoints:`);
+  console.log(`   GET  http://localhost:${PORT}/health`);
+  console.log(`   GET  http://localhost:${PORT}/api`);
+  console.log(`\n📋 Main API Routes:`);
+  console.log(`   POST /api/admin/auth/init-admin`);
+  console.log(`   POST /api/admin/auth/login`);
+  console.log(`   GET  /api/admin/auth/status`);
+  console.log(`   GET  /api/admin/training`);
+  console.log(`   POST /api/admin/links`);
+  console.log(`\n${'='.repeat(70)}`);
+  console.log('✅ Ready to receive requests!\n');
 });
 
 module.exports = app;
