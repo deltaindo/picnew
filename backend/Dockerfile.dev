@@ -1,9 +1,12 @@
-FROM node:18-alpine
+# Use Debian-based Node image for better Prisma compatibility
+FROM node:18-slim
 
 WORKDIR /app
 
-# Install OpenSSL 1.1 and other dependencies required by Prisma
-RUN apk add --no-cache openssl1.1-compat libc6-compat
+# Install OpenSSL and other dependencies
+RUN apt-get update && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
