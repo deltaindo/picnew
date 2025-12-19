@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
@@ -105,9 +104,9 @@ export default function AdminLogin() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8fa3b8] hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8fa3b8] hover:text-white transition-colors text-xl"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? '👁‍🗨' : '🔒'}
                 </button>
               </div>
             </div>
@@ -139,7 +138,7 @@ export default function AdminLogin() {
                 </>
               ) : (
                 <>
-                  <LogIn size={18} />
+                  🔓
                   Sign In
                 </>
               )}
