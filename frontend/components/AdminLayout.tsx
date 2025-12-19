@@ -4,7 +4,18 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import { Menu, X, LogOut, LayoutDashboard, Link as LinkIcon, Calendar, Users, Settings } from 'lucide-react';
+
+// Lucide icons - using string as fallback if import fails
+const icons = {
+  Menu: () => <span>☰</span>,
+  X: () => <span>✕</span>,
+  LogOut: () => <span>⏏</span>,
+  LayoutDashboard: () => <span>▤</span>,
+  Link: () => <span>🔗</span>,
+  Calendar: () => <span>📅</span>,
+  Users: () => <span>👥</span>,
+  Settings: () => <span>⚙</span>,
+};
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
@@ -28,11 +39,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const isActive = (path: string) => router.pathname === path;
 
   const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Link Pendaftaran', href: '/admin/links', icon: LinkIcon },
-    { name: 'Jadwal', href: '/admin/jadwal', icon: Calendar },
-    { name: 'Admin', href: '/admin/users', icon: Users },
-    { name: 'Master Data', href: '/admin/master-data', icon: Settings },
+    { name: 'Dashboard', href: '/admin', icon: 'LayoutDashboard' },
+    { name: 'Link Pendaftaran', href: '/admin/links', icon: 'Link' },
+    { name: 'Jadwal', href: '/admin/jadwal', icon: 'Calendar' },
+    { name: 'Admin', href: '/admin/users', icon: 'Users' },
+    { name: 'Master Data', href: '/admin/master-data', icon: 'Settings' },
   ];
 
   if (!mounted) return null;
@@ -60,31 +71,33 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-[#8fa3b8] hover:text-white ml-auto md:hidden"
+              title="Toggle sidebar"
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              {sidebarOpen ? '✕' : '☰'}
             </button>
           </div>
         </div>
 
         {/* Navigation Items */}
         <nav className="flex-1 px-3 py-6 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href}>
-                <a
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-blue-600 text-white'
-                      : 'text-[#8fa3b8] hover:bg-[#2d3e52] hover:text-white'
-                  }`}
-                >
-                  <Icon size={20} />
-                  {sidebarOpen && <span className="text-sm font-medium">{item.name}</span>}
-                </a>
-              </Link>
-            );
-          })}
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <a
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive(item.href)
+                    ? 'bg-blue-600 text-white'
+                    : 'text-[#8fa3b8] hover:bg-[#2d3e52] hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{item.icon === 'LayoutDashboard' && '▤'}</span>
+                <span className="text-lg">{item.icon === 'Link' && '🔗'}</span>
+                <span className="text-lg">{item.icon === 'Calendar' && '📅'}</span>
+                <span className="text-lg">{item.icon === 'Users' && '👥'}</span>
+                <span className="text-lg">{item.icon === 'Settings' && '⚙'}</span>
+                {sidebarOpen && <span className="text-sm font-medium">{item.name}</span>}
+              </a>
+            </Link>
+          ))}
         </nav>
 
         {/* Logout Button */}
@@ -93,7 +106,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#8fa3b8] hover:text-red-400 hover:bg-[#2d3e52] transition-colors"
           >
-            <LogOut size={20} />
+            <span className="text-lg">⏏</span>
             {sidebarOpen && <span className="text-sm font-medium">Log Out</span>}
           </button>
         </div>
