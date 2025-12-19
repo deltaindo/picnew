@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import AdminLayout from './layout';
-import { Calendar, AlertCircle, BarChart3, FileText } from 'lucide-react';
+import AdminLayout from '../../components/AdminLayout';
+import { Calendar, AlertCircle, BarChart3, FileText, Copy, Settings } from 'lucide-react';
 
 interface DashboardStats {
   activeLinks: number;
@@ -15,13 +15,12 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
-    activeLinks: 0,
-    totalRegistrations: 0,
-    pendingDocuments: 0,
-    certificatesExpiring: 0,
+    activeLinks: 30,
+    totalRegistrations: 156,
+    pendingDocuments: 24,
+    certificatesExpiring: 3,
   });
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('Admin');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -29,32 +28,7 @@ export default function AdminDashboard() {
       router.push('/admin/login');
       return;
     }
-
-    // Fetch dashboard stats
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/admin/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const user = await response.json();
-          setUserName(user.data.email.split('@')[0]);
-        }
-        // Mock stats for now
-        setStats({
-          activeLinks: 30,
-          totalRegistrations: 156,
-          pendingDocuments: 24,
-          certificatesExpiring: 3,
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
+    setLoading(false);
   }, [router]);
 
   if (loading) {
@@ -76,7 +50,7 @@ export default function AdminDashboard() {
         {/* Welcome Section */}
         <div className="grid md:grid-cols-3 gap-6">
           {/* Greeting Card */}
-          <div className="md:col-span-2 bg-[#233347] rounded-lg p-6 border border-[#2d3e52]">
+          <div className="md:col-span-2 bg-[#233347] rounded-xl p-6 border border-[#2d3e52] hover:border-blue-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">Hello Aryo, 👋</h1>
@@ -85,23 +59,23 @@ export default function AdminDashboard() {
                   <span className="text-sm">3 certificates are expiring today</span>
                 </div>
               </div>
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
+              <div className="hidden md:block w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg"></div>
             </div>
           </div>
 
           {/* Calendar Card */}
-          <div className="bg-[#233347] rounded-lg p-6 border border-[#2d3e52]">
-            <h3 className="text-white font-semibold mb-4">JULY 2025</h3>
-            <div className="grid grid-cols-7 gap-2 text-sm">
-              {['Sun', 'Mon', 'Thu', 'Wed', 'Thru', 'Sat'].map((day) => (
-                <div key={day} className="text-[#8fa3b8] text-xs font-medium text-center">
+          <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] hover:border-blue-600 transition-colors">
+            <h3 className="text-white font-semibold mb-4 text-sm">JULY 2025</h3>
+            <div className="grid grid-cols-7 gap-2 text-xs">
+              {['Sun', 'Mon', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="text-[#8fa3b8] font-medium text-center py-1">
                   {day}
                 </div>
               ))}
               {[13, 14, 15, 16, 17, 18].map((day) => (
                 <div
                   key={day}
-                  className={`text-center py-2 rounded ${
+                  className={`text-center py-2 rounded text-xs font-medium ${
                     day === 15
                       ? 'bg-blue-600 text-white font-bold'
                       : 'text-[#8fa3b8] hover:bg-[#2d3e52] cursor-pointer'
@@ -116,11 +90,11 @@ export default function AdminDashboard() {
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-4">
-          <div className="bg-[#233347] rounded-lg p-4 border border-[#2d3e52]">
+          <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-blue-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#8fa3b8] text-sm">Active Links</p>
-                <p className="text-white text-2xl font-bold mt-1">{stats.activeLinks}</p>
+                <p className="text-[#8fa3b8] text-xs font-medium uppercase">Active Links</p>
+                <p className="text-white text-2xl font-bold mt-2">{stats.activeLinks}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-blue-500 bg-opacity-20 flex items-center justify-center">
                 <BarChart3 className="text-blue-400" size={24} />
@@ -128,11 +102,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-[#233347] rounded-lg p-4 border border-[#2d3e52]">
+          <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-green-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#8fa3b8] text-sm">Total Registrations</p>
-                <p className="text-white text-2xl font-bold mt-1">{stats.totalRegistrations}</p>
+                <p className="text-[#8fa3b8] text-xs font-medium uppercase">Total Registrations</p>
+                <p className="text-white text-2xl font-bold mt-2">{stats.totalRegistrations}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-green-500 bg-opacity-20 flex items-center justify-center">
                 <FileText className="text-green-400" size={24} />
@@ -140,11 +114,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-[#233347] rounded-lg p-4 border border-[#2d3e52]">
+          <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-yellow-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#8fa3b8] text-sm">Pending Documents</p>
-                <p className="text-white text-2xl font-bold mt-1">{stats.pendingDocuments}</p>
+                <p className="text-[#8fa3b8] text-xs font-medium uppercase">Pending Documents</p>
+                <p className="text-white text-2xl font-bold mt-2">{stats.pendingDocuments}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-yellow-500 bg-opacity-20 flex items-center justify-center">
                 <AlertCircle className="text-yellow-400" size={24} />
@@ -152,11 +126,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-[#233347] rounded-lg p-4 border border-[#2d3e52]">
+          <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-red-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#8fa3b8] text-sm">Expiring Soon</p>
-                <p className="text-white text-2xl font-bold mt-1">{stats.certificatesExpiring}</p>
+                <p className="text-[#8fa3b8] text-xs font-medium uppercase">Expiring Soon</p>
+                <p className="text-white text-2xl font-bold mt-2">{stats.certificatesExpiring}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-red-500 bg-opacity-20 flex items-center justify-center">
                 <Calendar className="text-red-400" size={24} />
@@ -168,13 +142,13 @@ export default function AdminDashboard() {
         {/* Charts Row */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Link Pendaftaran Chart */}
-          <div className="bg-[#233347] rounded-lg p-6 border border-[#2d3e52]">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
+            <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold">Link Pendaftaran</h3>
-              <button className="text-[#8fa3b8] text-xl">⋯</button>
+              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors">⋯</button>
             </div>
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="relative w-32 h-32">
+              <div className="relative w-32 h-32 mb-4">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
                   {/* Background circle */}
                   <circle
@@ -194,6 +168,7 @@ export default function AdminDashboard() {
                     stroke="#2563eb"
                     strokeWidth="12"
                     strokeDasharray="106 141"
+                    strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -201,13 +176,13 @@ export default function AdminDashboard() {
                   <p className="text-[#8fa3b8] text-xs">Link</p>
                 </div>
               </div>
-              <div className="flex gap-4 mt-6">
+              <div className="flex gap-6">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span className="text-[#8fa3b8] text-sm">Active</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-[#2d3e52] rounded"></div>
+                  <div className="w-3 h-3 bg-[#2d3e52] rounded-full"></div>
                   <span className="text-[#8fa3b8] text-sm">Non-active</span>
                 </div>
               </div>
@@ -215,12 +190,12 @@ export default function AdminDashboard() {
           </div>
 
           {/* Activity Log */}
-          <div className="bg-[#233347] rounded-lg p-6 border border-[#2d3e52]">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
+            <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold">Activity Log</h3>
-              <button className="text-[#8fa3b8] text-xl">⋯</button>
+              <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors">⋯</button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-56 overflow-y-auto">
               <div className="pb-4 border-b border-[#2d3e52]">
                 <p className="text-white text-sm font-medium">Link pendaftaran baru telah di buat</p>
                 <p className="text-[#8fa3b8] text-xs mt-1">Wednesday</p>
@@ -238,22 +213,22 @@ export default function AdminDashboard() {
         </div>
 
         {/* All Forms Table */}
-        <div className="bg-[#233347] rounded-lg p-6 border border-[#2d3e52]">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
             <div>
               <h3 className="text-white font-semibold text-lg">All Form</h3>
               <p className="text-[#8fa3b8] text-sm mt-1">List of clients</p>
             </div>
-            <div className="flex gap-4">
-              <div className="relative">
+            <div className="flex gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:flex-none">
                 <input
                   type="text"
                   placeholder="Search"
-                  className="bg-[#1a2332] border border-[#2d3e52] rounded px-4 py-2 text-white text-sm placeholder-[#8fa3b8] focus:outline-none focus:border-blue-500"
+                  className="bg-[#1a2332] border border-[#2d3e52] rounded px-4 py-2 text-white text-sm placeholder-[#8fa3b8] focus:outline-none focus:border-blue-500 w-full"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <select className="bg-[#1a2332] border border-[#2d3e52] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+              <div className="flex-1 md:flex-none">
+                <select className="bg-[#1a2332] border border-[#2d3e52] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 w-full">
                   <option>Newest</option>
                   <option>Oldest</option>
                 </select>
@@ -265,13 +240,13 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#2d3e52]">
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Form</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Tanggal Pelaksanaan</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Tanggal Selesai</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Program</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Link</th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium">Action</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Form</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Tanggal Pelaksanaan</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Tanggal Selesai</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Program</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Status</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Link</th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,7 +256,7 @@ export default function AdminDashboard() {
                   { form: 'AHLI K3 UMUM', date1: '15-07-2025', date2: '15-07-2025', program: 'Inhouse', status: 'Reminder' },
                   { form: 'K3 LISTRIK', date1: '15-07-2025', date2: '15-07-2025', program: 'Inhouse', status: 'Reminder' },
                 ].map((row, idx) => (
-                  <tr key={idx} className="border-b border-[#2d3e52] hover:bg-[#1a2332]">
+                  <tr key={idx} className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors">
                     <td className="px-4 py-3 text-white font-medium">{row.form}</td>
                     <td className="px-4 py-3 text-[#8fa3b8]">{row.date1}</td>
                     <td className="px-4 py-3 text-[#8fa3b8]">{row.date2}</td>
@@ -291,9 +266,15 @@ export default function AdminDashboard() {
                         {row.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#8fa3b8]">📋</td>
-                    <td className="px-4 py-3 text-[#8fa3b8] text-center">
-                      <button className="hover:text-white">⚙️</button>
+                    <td className="px-4 py-3">
+                      <button className="text-[#8fa3b8] hover:text-blue-400 transition-colors" title="Copy link">
+                        <Copy size={16} />
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button className="text-[#8fa3b8] hover:text-white transition-colors" title="Settings">
+                        <Settings size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
