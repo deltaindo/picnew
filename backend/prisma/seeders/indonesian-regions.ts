@@ -35,21 +35,37 @@ interface Village {
 
 const prisma = new PrismaClient();
 const BASE_URL = 'https://cdn.jsdelivr.net/gh/rezzvy/geonesia-api/data';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
 
 /**
- * Fetch data from Geonesia API
+ * Delay helper
  */
-async function fetchFromGeonesia(url: string): Promise<any> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch data from Geonesia API with retry logic
+ */
+async function fetchFromGeonesia(url: string, retries = MAX_RETRIES): Promise<any> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error: any) {
+      if (attempt === retries) {
+        console.error(`❌ Error fetching ${url} after ${retries} attempts:`, error.message);
+        return null;
+      }
+      console.warn(`⚠️  Retry ${attempt}/${retries} for ${url} (${error.message})`);
+      await delay(RETRY_DELAY * attempt); // Exponential backoff
     }
-    return await response.json();
-  } catch (error) {
-    console.error(`❌ Error fetching ${url}:`, error);
-    return null;
   }
+  return null;
 }
 
 /**
@@ -221,15 +237,21 @@ function determineVillageType(name: string): 'village' | 'urban_village' {
 async function main() {
   try {
     console.log('🌱 Starting Indonesian Regions Seeding...\n');
+    console.log('🔄 Retry enabled: 3 attempts per API call with exponential backoff\n');
 
     // Get all provinces
     const provinces = await getProvinces();
+    if (!provinces || provinces.length === 0) {
+      console.error('❌ Failed to fetch provinces. Exiting.');
+      process.exit(1);
+    }
     console.log(`✓ Found ${provinces.length} provinces\n`);
 
     let totalRegencies = 0;
     let totalDistricts = 0;
     let totalVillages = 0;
     let skippedVillages = 0;
+    let failedFetches = 0;
 
     // Seed each province with its regencies, districts, and villages
     for (const province of provinces) {
@@ -244,6 +266,11 @@ async function main() {
 
       // Get cities/regencies for this province
       const cities = await getCitiesByProvince(province.id);
+      if (!cities || cities.length === 0) {
+        console.warn(`   ⚠️  No cities found for ${province.province}`);
+        failedFetches++;
+        continue;
+      }
       console.log(`   📍 Found ${cities.length} regencies/cities`);
 
       // Seed each regency/city
@@ -265,6 +292,11 @@ async function main() {
       // Seed districts for each regency
       for (const regency of regenciesList) {
         const districts = await getDistrictsByCity(regency.geonesia.id);
+        if (!districts || districts.length === 0) {
+          console.warn(`   ⚠️  No districts found for ${regency.geonesia.name}`);
+          failedFetches++;
+          continue;
+        }
 
         // Seed districts in batch
         const districtsList: any[] = [];
@@ -283,23 +315,26 @@ async function main() {
         // Seed villages for each district
         for (const district of districtsList) {
           const villages = await getVillagesByDistrict(district.geonesia.id);
+          
+          if (!villages || villages.length === 0) {
+            // Don't log warning for empty villages - some districts might not have data yet
+            continue;
+          }
 
-          if (villages.length > 0) {
-            // Seed villages sequentially to avoid duplicate issues
-            for (const village of villages) {
-              const villageType = determineVillageType(village.name);
-              const result = await upsertVillage(
-                village.id,
-                village.name,
-                district.record.id,
-                villageType
-              );
-              
-              if (result) {
-                totalVillages++;
-              } else {
-                skippedVillages++;
-              }
+          // Seed villages sequentially to avoid duplicate issues
+          for (const village of villages) {
+            const villageType = determineVillageType(village.name);
+            const result = await upsertVillage(
+              village.id,
+              village.name,
+              district.record.id,
+              villageType
+            );
+            
+            if (result) {
+              totalVillages++;
+            } else {
+              skippedVillages++;
             }
           }
         }
@@ -322,6 +357,9 @@ async function main() {
     console.log(`   • Villages:         ${totalVillages}`);
     if (skippedVillages > 0) {
       console.log(`   • Skipped (duplicates): ${skippedVillages}`);
+    }
+    if (failedFetches > 0) {
+      console.log(`   ⚠️  Failed API fetches: ${failedFetches}`);
     }
     console.log(`   • Total Records:    ${34 + totalRegencies + totalDistricts + totalVillages}`);
     console.log('═══════════════════════════════════════\n');
