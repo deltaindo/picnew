@@ -23,7 +23,7 @@ ALTER SEQUENCE subdistricts_id_seq RESTART WITH 1;
 ALTER SEQUENCE villages_id_seq RESTART WITH 1;
 
 -- Enable foreign key checks
-SET session_replication_role = 'default';
+SET session_replication_role = 'origin';
 
 -- ========================================
 -- PROVINCES (34 Total)
