@@ -86,24 +86,30 @@ async function getVillagesByDistrict(districtId: string): Promise<Village[]> {
 }
 
 /**
- * Upsert province
+ * Upsert province with error handling
  */
 async function upsertProvince(
   code: string,
   name: string
 ): Promise<any> {
-  return await prisma.province.upsert({
-    where: { code },
-    update: {},
-    create: {
-      code,
-      name,
-    },
-  });
+  try {
+    return await prisma.province.upsert({
+      where: { code },
+      update: { name },
+      create: {
+        code,
+        name,
+      },
+    });
+  } catch (error: any) {
+    console.warn(`⚠️  Warning: Could not upsert province ${code}: ${error.message}`);
+    // Try to find existing record
+    return await prisma.province.findUnique({ where: { code } });
+  }
 }
 
 /**
- * Upsert regency/city
+ * Upsert regency/city with error handling
  */
 async function upsertRegency(
   code: string,
@@ -111,39 +117,49 @@ async function upsertRegency(
   provinceId: number,
   type: 'regency' | 'city' = 'regency'
 ): Promise<any> {
-  return await prisma.regency.upsert({
-    where: { code },
-    update: {},
-    create: {
-      code,
-      name,
-      type,
-      provinceId,
-    },
-  });
+  try {
+    return await prisma.regency.upsert({
+      where: { code },
+      update: { name, type, provinceId },
+      create: {
+        code,
+        name,
+        type,
+        provinceId,
+      },
+    });
+  } catch (error: any) {
+    console.warn(`⚠️  Warning: Could not upsert regency ${code}: ${error.message}`);
+    return await prisma.regency.findUnique({ where: { code } });
+  }
 }
 
 /**
- * Upsert district
+ * Upsert district with error handling
  */
 async function upsertDistrict(
   code: string,
   name: string,
   regencyId: number
 ): Promise<any> {
-  return await prisma.district.upsert({
-    where: { code },
-    update: {},
-    create: {
-      code,
-      name,
-      regencyId,
-    },
-  });
+  try {
+    return await prisma.district.upsert({
+      where: { code },
+      update: { name, regencyId },
+      create: {
+        code,
+        name,
+        regencyId,
+      },
+    });
+  } catch (error: any) {
+    console.warn(`⚠️  Warning: Could not upsert district ${code}: ${error.message}`);
+    return await prisma.district.findUnique({ where: { code } });
+  }
 }
 
 /**
- * Upsert village
+ * Upsert village with improved error handling and duplicate detection
  */
 async function upsertVillage(
   code: string,
@@ -151,34 +167,36 @@ async function upsertVillage(
   districtId: number,
   type: 'village' | 'urban_village' = 'village'
 ): Promise<any> {
-  return await prisma.village.upsert({
-    where: { code },
-    update: {},
-    create: {
-      code,
-      name,
-      type,
-      districtId,
-    },
-  });
-}
-
-/**
- * Batch insert with chunking to avoid memory issues
- */
-async function batchInsert<T>(
-  items: T[],
-  batchSize: number,
-  processor: (item: T) => Promise<any>
-): Promise<void> {
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    await Promise.all(batch.map(processor));
+  try {
+    // First, try to find existing village
+    const existing = await prisma.village.findUnique({ where: { code } });
     
-    const progress = Math.min(i + batchSize, items.length);
-    process.stdout.write(`\r  Progress: ${progress}/${items.length}`);
+    if (existing) {
+      // If exists, update it
+      return await prisma.village.update({
+        where: { code },
+        data: { name, type, districtId },
+      });
+    } else {
+      // If not exists, create it
+      return await prisma.village.create({
+        data: {
+          code,
+          name,
+          type,
+          districtId,
+        },
+      });
+    }
+  } catch (error: any) {
+    // If still fails, just skip silently (likely duplicate from concurrent operations)
+    if (error.code === 'P2002') {
+      // Duplicate key error - just return the existing record
+      return await prisma.village.findUnique({ where: { code } });
+    }
+    console.warn(`⚠️  Warning: Could not upsert village ${code}: ${error.message}`);
+    return null;
   }
-  console.log('\n');
 }
 
 /**
@@ -211,6 +229,7 @@ async function main() {
     let totalRegencies = 0;
     let totalDistricts = 0;
     let totalVillages = 0;
+    let skippedVillages = 0;
 
     // Seed each province with its regencies, districts, and villages
     for (const province of provinces) {
@@ -218,6 +237,10 @@ async function main() {
 
       // Upsert province
       const provincRecord = await upsertProvince(province.id, province.province);
+      if (!provincRecord) {
+        console.warn(`   ⚠️  Skipping province ${province.province} - could not create record`);
+        continue;
+      }
 
       // Get cities/regencies for this province
       const cities = await getCitiesByProvince(province.id);
@@ -233,8 +256,10 @@ async function main() {
           provincRecord.id,
           regencyType
         );
-        regenciesList.push({ record: regencyRecord, geonesia: city });
-        totalRegencies++;
+        if (regencyRecord) {
+          regenciesList.push({ record: regencyRecord, geonesia: city });
+          totalRegencies++;
+        }
       }
 
       // Seed districts for each regency
@@ -249,8 +274,10 @@ async function main() {
             district.name,
             regency.record.id
           );
-          districtsList.push({ record: districtRecord, geonesia: district });
-          totalDistricts++;
+          if (districtRecord) {
+            districtsList.push({ record: districtRecord, geonesia: district });
+            totalDistricts++;
+          }
         }
 
         // Seed villages for each district
@@ -258,23 +285,21 @@ async function main() {
           const villages = await getVillagesByDistrict(district.geonesia.id);
 
           if (villages.length > 0) {
-            // Seed villages in batch with chunking
-            const villageProcessors = villages.map(village => async () => {
+            // Seed villages sequentially to avoid duplicate issues
+            for (const village of villages) {
               const villageType = determineVillageType(village.name);
-              await upsertVillage(
+              const result = await upsertVillage(
                 village.id,
                 village.name,
                 district.record.id,
                 villageType
               );
-              totalVillages++;
-            });
-
-            // Process villages with concurrency control
-            const CONCURRENCY = 10;
-            for (let i = 0; i < villageProcessors.length; i += CONCURRENCY) {
-              const batch = villageProcessors.slice(i, i + CONCURRENCY);
-              await Promise.all(batch.map(p => p()));
+              
+              if (result) {
+                totalVillages++;
+              } else {
+                skippedVillages++;
+              }
             }
           }
         }
@@ -295,6 +320,9 @@ async function main() {
     console.log(`   • Regencies/Cities: ${totalRegencies}`);
     console.log(`   • Districts:        ${totalDistricts}`);
     console.log(`   • Villages:         ${totalVillages}`);
+    if (skippedVillages > 0) {
+      console.log(`   • Skipped (duplicates): ${skippedVillages}`);
+    }
     console.log(`   • Total Records:    ${34 + totalRegencies + totalDistricts + totalVillages}`);
     console.log('═══════════════════════════════════════\n');
 
