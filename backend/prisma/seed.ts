@@ -156,17 +156,20 @@ async function main() {
     // 6. Seed Indonesian Regions
     console.log('📍 Seeding Indonesian Regions...');
     console.log('   This will seed all 34 provinces, 514 regencies/cities, 7,277 districts, and 75,574+ villages');
-    console.log('   Running: npx ts-node prisma/seeders/indonesian-regions.ts\n');
+    console.log('   Running: npm run regions:seed\n');
 
     try {
-      await execAsync('npx ts-node prisma/seeders/indonesian-regions.ts', {
+      const { stdout, stderr } = await execAsync('npm run regions:seed', {
         cwd: process.cwd(),
-        stdio: 'inherit',
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large output
       });
+      if (stdout) console.log(stdout);
+      if (stderr) console.error(stderr);
     } catch (error: any) {
       console.warn('⚠️  Warning: Indonesian regions seeder encountered an issue.');
       console.warn('   This is likely due to API rate limiting or network issues.');
-      console.warn('   You can run the seeder separately with: npx ts-node prisma/seeders/indonesian-regions.ts\n');
+      console.warn('   You can run the seeder separately with: npm run regions:seed');
+      console.warn(`   Error: ${error.message}\n`);
     }
 
     console.log('\n✅ Database seeded successfully!');
