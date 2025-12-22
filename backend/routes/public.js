@@ -7,7 +7,7 @@ router.get('/links/:token', async (req, res) => {
   try {
     const { token } = req.params;
 
-    // Get link details
+    // Get link details with required documents
     const linkResult = await pool.query(
       `SELECT 
         rl.id, rl.token, rl.training_id, rl.class_level, rl.personnel_type, 
@@ -39,27 +39,102 @@ router.get('/links/:token', async (req, res) => {
 
     // Get required documents for this link
     const docsResult = await pool.query(
-      `SELECT id, name, type 
-       FROM document_types 
-       WHERE id IN (
-         SELECT document_id FROM link_required_documents WHERE link_id = $1
-       )
-       ORDER BY name ASC`,
+      `SELECT dt.id, dt.name, dt.description
+       FROM document_types dt
+       JOIN link_required_documents lrd ON dt.id = lrd.document_id
+       WHERE lrd.link_id = $1 AND lrd.is_required = true
+       ORDER BY dt.name ASC`,
       [link.id]
     );
 
-    // If no specific documents linked, return empty array instead of error
+    // Get provinces for cascading dropdown
+    const provincesResult = await pool.query(
+      `SELECT id, name FROM provinces ORDER BY name ASC`
+    );
+
+    // Get education levels
+    const educationResult = await pool.query(
+      `SELECT id, name FROM education_levels ORDER BY name ASC`
+    );
+
     const required_documents = docsResult.rows || [];
+    const provinces = provincesResult.rows || [];
+    const education_levels = educationResult.rows || [];
 
     res.json({
       success: true,
       data: {
         ...link,
         required_documents: required_documents,
+        provinces: provinces,
+        education_levels: education_levels,
       },
     });
   } catch (error) {
     console.error('Get link error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+// Get districts for a province
+router.get('/locations/districts/:province_id', async (req, res) => {
+  try {
+    const { province_id } = req.params;
+    const result = await pool.query(
+      `SELECT id, name FROM districts WHERE province_id = $1 ORDER BY name ASC`,
+      [province_id]
+    );
+    res.json({
+      success: true,
+      data: result.rows || [],
+    });
+  } catch (error) {
+    console.error('Get districts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+// Get subdistricts for a district
+router.get('/locations/subdistricts/:district_id', async (req, res) => {
+  try {
+    const { district_id } = req.params;
+    const result = await pool.query(
+      `SELECT id, name FROM subdistricts WHERE district_id = $1 ORDER BY name ASC`,
+      [district_id]
+    );
+    res.json({
+      success: true,
+      data: result.rows || [],
+    });
+  } catch (error) {
+    console.error('Get subdistricts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+// Get villages for a subdistrict
+router.get('/locations/villages/:subdistrict_id', async (req, res) => {
+  try {
+    const { subdistrict_id } = req.params;
+    const result = await pool.query(
+      `SELECT id, name FROM villages WHERE subdistrict_id = $1 ORDER BY name ASC`,
+      [subdistrict_id]
+    );
+    res.json({
+      success: true,
+      data: result.rows || [],
+    });
+  } catch (error) {
+    console.error('Get villages error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -72,20 +147,34 @@ router.post('/registrations', async (req, res) => {
   try {
     const {
       link_id,
-      full_name,
+      nama,
+      ktp,
+      tempat_lahir,
+      tanggal_lahir,
+      pendidikan,
+      nama_sekolah,
+      no_ijazah,
+      tgl_ijazah,
+      province_id,
+      district_id,
+      subdistrict_id,
+      village_id,
+      alamat_rumah,
+      golongan_darah,
+      wa,
       email,
-      phone,
-      nik,
-      address,
-      company,
-      position,
+      instansi,
+      sektor,
+      alamat_perusahaan,
+      jabatan,
+      tlp_kantor,
     } = req.body;
 
     // Validation
-    if (!link_id || !full_name || !email || !phone || !nik) {
+    if (!link_id || !nama || !ktp || !email || !wa) {
       return res.status(400).json({
         success: false,
-        message: 'Required fields: link_id, full_name, email, phone, nik',
+        message: 'Required fields missing: link_id, nama, ktp, email, wa',
       });
     }
 
@@ -112,20 +201,27 @@ router.post('/registrations', async (req, res) => {
       });
     }
 
-    // Create registration
+    // Create registration with all fields
     const registrationResult = await pool.query(
-      `INSERT INTO registrations (link_id, full_name, email, phone, nik, address, company, position, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'submitted', NOW())
-       RETURNING id, full_name, email, link_id`,
+      `INSERT INTO registrations (
+        link_id, full_name, email, phone, nik, 
+        tempat_lahir, tanggal_lahir, pendidikan, nama_sekolah, no_ijazah, tgl_ijazah,
+        province_id, district_id, subdistrict_id, village_id, alamat_rumah, golongan_darah, wa,
+        company, position, instansi, sektor, alamat_perusahaan, jabatan, tlp_kantor,
+        status, created_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, 
+        $6, $7, $8, $9, $10, $11,
+        $12, $13, $14, $15, $16, $17, $18,
+        $19, $20, $21, $22, $23, $24, $25,
+        'submitted', NOW()
+      )
+      RETURNING id, full_name, email`,
       [
-        link_id,
-        full_name,
-        email,
-        phone,
-        nik,
-        address || null,
-        company || null,
-        position || null,
+        link_id, nama, email, wa, ktp,
+        tempat_lahir, tanggal_lahir, pendidikan, nama_sekolah, no_ijazah, tgl_ijazah,
+        province_id, district_id, subdistrict_id, village_id, alamat_rumah, golongan_darah, wa,
+        instansi, jabatan, instansi, sektor, alamat_perusahaan, jabatan, tlp_kantor,
       ]
     );
 
@@ -143,7 +239,7 @@ router.post('/registrations', async (req, res) => {
       data: {
         registration_id: registration.id,
         confirmation_email: registration.email,
-        next_step: 'Please check your email for further instructions',
+        next_step: 'Please check your email for further instructions and WhatsApp message',
       },
     });
   } catch (error) {
@@ -159,28 +255,23 @@ router.post('/registrations', async (req, res) => {
 router.post('/registrations/:registration_id/documents/upload', async (req, res) => {
   try {
     const { registration_id } = req.params;
-    const { document_type, file_data, file_name } = req.body;
+    const { document_type_id, file_path, file_name, file_size, mime_type } = req.body;
 
-    if (!document_type || !file_data) {
+    if (!document_type_id || !file_path) {
       return res.status(400).json({
         success: false,
-        message: 'document_type and file_data required',
+        message: 'document_type_id and file_path required',
       });
     }
 
-    // TODO: Store file in S3/MinIO
-    // For now, just record in database
-
     const result = await pool.query(
-      `INSERT INTO registration_documents (registration_id, document_type, file_name, file_path, status, uploaded_at)
-       VALUES ($1, $2, $3, $4, 'uploaded', NOW())
-       RETURNING *`,
-      [
-        registration_id,
-        document_type,
-        file_name || 'document',
-        `/uploads/${registration_id}/${document_type}`,
-      ]
+      `INSERT INTO registration_documents (
+        registration_id, document_type_id, file_path, file_name, file_size, mime_type, status, uploaded_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'uploaded', NOW())
+      ON CONFLICT (registration_id, document_type_id) 
+      DO UPDATE SET file_path = $3, file_name = $4, file_size = $5, mime_type = $6
+      RETURNING *`,
+      [registration_id, document_type_id, file_path, file_name || 'document', file_size, mime_type]
     );
 
     res.json({
