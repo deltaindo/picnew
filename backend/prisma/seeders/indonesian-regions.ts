@@ -36,7 +36,7 @@ interface Village {
 const prisma = new PrismaClient();
 const BASE_URL = 'https://cdn.jsdelivr.net/gh/rezzvy/geonesia-api/data';
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds
+const RETRY_DELAY = 1500; // 1.5 seconds
 
 /**
  * Delay helper
@@ -53,16 +53,14 @@ async function fetchFromGeonesia(url: string, retries = MAX_RETRIES): Promise<an
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}`);
       }
       return await response.json();
     } catch (error: any) {
       if (attempt === retries) {
-        console.error(`❌ Error fetching ${url} after ${retries} attempts:`, error.message);
         return null;
       }
-      console.warn(`⚠️  Retry ${attempt}/${retries} for ${url} (${error.message})`);
-      await delay(RETRY_DELAY * attempt); // Exponential backoff
+      await delay(RETRY_DELAY * attempt);
     }
   }
   return null;
@@ -112,20 +110,18 @@ async function upsertProvince(
     return await prisma.province.upsert({
       where: { code },
       update: { name },
-      create: {
-        code,
-        name,
-      },
+      create: { code, name },
     });
   } catch (error: any) {
-    console.warn(`⚠️  Warning: Could not upsert province ${code}: ${error.message}`);
-    // Try to find existing record
-    return await prisma.province.findUnique({ where: { code } });
+    if (error.code === 'P2002') {
+      return await prisma.province.findUnique({ where: { code } });
+    }
+    return null;
   }
 }
 
 /**
- * Upsert regency/city with error handling
+ * Upsert regency/city with compound unique constraint handling
  */
 async function upsertRegency(
   code: string,
@@ -134,43 +130,25 @@ async function upsertRegency(
   type: 'regency' | 'city' = 'regency'
 ): Promise<any> {
   try {
+    // Try compound unique constraint first
     return await prisma.regency.upsert({
-      where: { 
-        code_provinceId: {
-          code: code,
-          provinceId: provinceId
-        }
-      },
+      where: { code_provinceId: { code, provinceId } },
       update: { name, type },
-      create: {
-        code,
-        name,
-        type,
-        provinceId,
-      },
+      create: { code, name, type, provinceId },
     });
   } catch (error: any) {
-    // Fallback: try using just code
-    try {
-      return await prisma.regency.upsert({
-        where: { code },
-        update: { name, type, provinceId },
-        create: {
-          code,
-          name,
-          type,
-          provinceId,
-        },
+    if (error.code === 'P2002') {
+      // Fallback: find by compound key
+      return await prisma.regency.findFirst({
+        where: { code, provinceId },
       });
-    } catch (e: any) {
-      console.warn(`⚠️  Warning: Could not upsert regency ${code}: ${error.message}`);
-      return await prisma.regency.findUnique({ where: { code } });
     }
+    return null;
   }
 }
 
 /**
- * Upsert district with error handling - FIXED to match compound unique constraint
+ * Upsert district with compound unique constraint handling
  */
 async function upsertDistrict(
   code: string,
@@ -178,41 +156,25 @@ async function upsertDistrict(
   regencyId: number
 ): Promise<any> {
   try {
+    // Try compound unique constraint first
     return await prisma.district.upsert({
-      where: { 
-        code_regencyId: {
-          code: code,
-          regencyId: regencyId
-        }
-      },
+      where: { code_regencyId: { code, regencyId } },
       update: { name },
-      create: {
-        code,
-        name,
-        regencyId,
-      },
+      create: { code, name, regencyId },
     });
   } catch (error: any) {
-    // Fallback: try using just code
-    try {
-      return await prisma.district.upsert({
-        where: { code },
-        update: { name, regencyId },
-        create: {
-          code,
-          name,
-          regencyId,
-        },
+    if (error.code === 'P2002') {
+      // Fallback: find by compound key
+      return await prisma.district.findFirst({
+        where: { code, regencyId },
       });
-    } catch (e: any) {
-      console.warn(`⚠️  Warning: Could not upsert district ${code}: ${error.message}`);
-      return await prisma.district.findUnique({ where: { code } });
     }
+    return null;
   }
 }
 
 /**
- * Upsert village with improved error handling - FIXED to match compound unique constraint
+ * Upsert village with compound unique constraint handling
  */
 async function upsertVillage(
   code: string,
@@ -221,49 +183,20 @@ async function upsertVillage(
   type: 'village' | 'urban_village' = 'village'
 ): Promise<any> {
   try {
+    // Try compound unique constraint first
     return await prisma.village.upsert({
-      where: { 
-        code_districtId: {
-          code: code,
-          districtId: districtId
-        }
-      },
+      where: { code_districtId: { code, districtId } },
       update: { name, type },
-      create: {
-        code,
-        name,
-        type,
-        districtId,
-      },
+      create: { code, name, type, districtId },
     });
   } catch (error: any) {
-    // Fallback: try using just code
-    try {
-      return await prisma.village.upsert({
-        where: { code },
-        update: { name, type, districtId },
-        create: {
-          code,
-          name,
-          type,
-          districtId,
-        },
+    if (error.code === 'P2002') {
+      // Fallback: find by compound key
+      return await prisma.village.findFirst({
+        where: { code, districtId },
       });
-    } catch (e: any) {
-      // Last resort: try to find and update
-      try {
-        const existing = await prisma.village.findUnique({ where: { code } });
-        if (existing) {
-          return await prisma.village.update({
-            where: { code },
-            data: { name, type, districtId },
-          });
-        }
-      } catch (finalError: any) {
-        console.warn(`⚠️  Warning: Could not upsert village ${code}: ${finalError.message}`);
-      }
-      return null;
     }
+    return null;
   }
 }
 
@@ -271,16 +204,14 @@ async function upsertVillage(
  * Determine regency type from name
  */
 function determineRegencyType(name: string): 'regency' | 'city' {
-  const cityKeywords = ['KOTA', 'KOTA ADMINISTRASI'];
-  return cityKeywords.some(keyword => name.includes(keyword)) ? 'city' : 'regency';
+  return name.includes('KOTA') ? 'city' : 'regency';
 }
 
 /**
- * Determine village type from name (simple heuristic)
+ * Determine village type from name
  */
 function determineVillageType(name: string): 'village' | 'urban_village' {
-  const urbanKeywords = ['KELURAHAN', 'KEL'];
-  return urbanKeywords.some(keyword => name.includes(keyword)) ? 'urban_village' : 'village';
+  return name.includes('KELURAHAN') || name.includes('KEL') ? 'urban_village' : 'village';
 }
 
 /**
@@ -289,12 +220,11 @@ function determineVillageType(name: string): 'village' | 'urban_village' {
 async function main() {
   try {
     console.log('🌱 Starting Indonesian Regions Seeding...\n');
-    console.log('🔄 Retry enabled: 3 attempts per API call with exponential backoff\n');
 
     // Get all provinces
     const provinces = await getProvinces();
     if (!provinces || provinces.length === 0) {
-      console.error('❌ Failed to fetch provinces. Exiting.');
+      console.error('❌ Failed to fetch provinces.');
       process.exit(1);
     }
     console.log(`✓ Found ${provinces.length} provinces\n`);
@@ -302,38 +232,34 @@ async function main() {
     let totalRegencies = 0;
     let totalDistricts = 0;
     let totalVillages = 0;
-    let skippedVillages = 0;
-    let failedFetches = 0;
 
-    // Seed each province with its regencies, districts, and villages
+    // Seed each province
     for (const province of provinces) {
-      console.log(`\n🏙️  Seeding Province: ${province.province} (${province.id})`);
+      console.log(`🏙️  Seeding Province: ${province.province}`);
 
       // Upsert province
       const provincRecord = await upsertProvince(province.id, province.province);
       if (!provincRecord) {
-        console.warn(`   ⚠️  Skipping province ${province.province} - could not create record`);
+        console.warn(`   ⚠️  Could not create province. Skipping.`);
         continue;
       }
 
-      // Get cities/regencies for this province
+      // Get cities/regencies
       const cities = await getCitiesByProvince(province.id);
       if (!cities || cities.length === 0) {
-        console.warn(`   ⚠️  No cities found for ${province.province}`);
-        failedFetches++;
+        console.warn(`   ⚠️  No regencies found.`);
         continue;
       }
-      console.log(`   📍 Found ${cities.length} regencies/cities`);
+      console.log(`   📍 ${cities.length} regencies/cities`);
 
-      // Seed each regency/city
+      // Seed regencies
       const regenciesList: any[] = [];
       for (const city of cities) {
-        const regencyType = determineRegencyType(city.name);
         const regencyRecord = await upsertRegency(
           city.id,
           city.name,
           provincRecord.id,
-          regencyType
+          determineRegencyType(city.name)
         );
         if (regencyRecord) {
           regenciesList.push({ record: regencyRecord, geonesia: city });
@@ -341,16 +267,11 @@ async function main() {
         }
       }
 
-      // Seed districts for each regency
+      // Seed districts and villages
       for (const regency of regenciesList) {
         const districts = await getDistrictsByCity(regency.geonesia.id);
-        if (!districts || districts.length === 0) {
-          console.warn(`   ⚠️  No districts found for ${regency.geonesia.name}`);
-          failedFetches++;
-          continue;
-        }
+        if (!districts || districts.length === 0) continue;
 
-        // Seed districts in batch
         const districtsList: any[] = [];
         for (const district of districts) {
           const districtRecord = await upsertDistrict(
@@ -364,65 +285,47 @@ async function main() {
           }
         }
 
-        // Seed villages for each district
+        // Seed villages
         for (const district of districtsList) {
           const villages = await getVillagesByDistrict(district.geonesia.id);
-          
-          if (!villages || villages.length === 0) {
-            // Don't log warning for empty villages - some districts might not have data yet
-            continue;
-          }
+          if (!villages || villages.length === 0) continue;
 
-          // Seed villages sequentially to avoid duplicate issues
           for (const village of villages) {
-            const villageType = determineVillageType(village.name);
             const result = await upsertVillage(
               village.id,
               village.name,
               district.record.id,
-              villageType
+              determineVillageType(village.name)
             );
-            
-            if (result) {
-              totalVillages++;
-            } else {
-              skippedVillages++;
-            }
+            if (result) totalVillages++;
           }
         }
 
-        process.stdout.write(`   ✓ Processed regency: ${regency.geonesia.name}\r`);
+        process.stdout.write(`   ✓ ${regency.geonesia.name}\r`);
       }
 
       console.log(
-        `   ✓ Seeded ${regenciesList.length} regencies/cities for ${province.province}`
+        `   ✓ Completed ${regenciesList.length} regencies/cities for ${province.province}`
       );
     }
 
     // Final statistics
-    console.log('\n\n✅ Indonesian Regions Seeding Complete!');
-    console.log('═══════════════════════════════════════');
-    console.log(`📊 Statistics:`);
+    console.log('\n\n✅ Seeding Complete!');
+    console.log('══════════════════════════════');
+    console.log(`📊 Indonesian Regions:`);
     console.log(`   • Provinces:        34`);
     console.log(`   • Regencies/Cities: ${totalRegencies}`);
     console.log(`   • Districts:        ${totalDistricts}`);
     console.log(`   • Villages:         ${totalVillages}`);
-    if (skippedVillages > 0) {
-      console.log(`   • Skipped (duplicates): ${skippedVillages}`);
-    }
-    if (failedFetches > 0) {
-      console.log(`   ⚠️  Failed API fetches: ${failedFetches}`);
-    }
-    console.log(`   • Total Records:    ${34 + totalRegencies + totalDistricts + totalVillages}`);
-    console.log('═══════════════════════════════════════\n');
+    console.log(`   • Total:            ${34 + totalRegencies + totalDistricts + totalVillages}`);
+    console.log('══════════════════════════════\n');
 
   } catch (error) {
-    console.error('❌ Seeding error:', error);
+    console.error('❌ Error:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Run the seeder
 main();
