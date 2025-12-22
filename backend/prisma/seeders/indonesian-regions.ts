@@ -135,8 +135,13 @@ async function upsertRegency(
 ): Promise<any> {
   try {
     return await prisma.regency.upsert({
-      where: { code },
-      update: { name, type, provinceId },
+      where: { 
+        code_provinceId: {
+          code: code,
+          provinceId: provinceId
+        }
+      },
+      update: { name, type },
       create: {
         code,
         name,
@@ -145,13 +150,27 @@ async function upsertRegency(
       },
     });
   } catch (error: any) {
-    console.warn(`⚠️  Warning: Could not upsert regency ${code}: ${error.message}`);
-    return await prisma.regency.findUnique({ where: { code } });
+    // Fallback: try using just code
+    try {
+      return await prisma.regency.upsert({
+        where: { code },
+        update: { name, type, provinceId },
+        create: {
+          code,
+          name,
+          type,
+          provinceId,
+        },
+      });
+    } catch (e: any) {
+      console.warn(`⚠️  Warning: Could not upsert regency ${code}: ${error.message}`);
+      return await prisma.regency.findUnique({ where: { code } });
+    }
   }
 }
 
 /**
- * Upsert district with error handling
+ * Upsert district with error handling - FIXED to match compound unique constraint
  */
 async function upsertDistrict(
   code: string,
@@ -160,8 +179,13 @@ async function upsertDistrict(
 ): Promise<any> {
   try {
     return await prisma.district.upsert({
-      where: { code },
-      update: { name, regencyId },
+      where: { 
+        code_regencyId: {
+          code: code,
+          regencyId: regencyId
+        }
+      },
+      update: { name },
       create: {
         code,
         name,
@@ -169,13 +193,26 @@ async function upsertDistrict(
       },
     });
   } catch (error: any) {
-    console.warn(`⚠️  Warning: Could not upsert district ${code}: ${error.message}`);
-    return await prisma.district.findUnique({ where: { code } });
+    // Fallback: try using just code
+    try {
+      return await prisma.district.upsert({
+        where: { code },
+        update: { name, regencyId },
+        create: {
+          code,
+          name,
+          regencyId,
+        },
+      });
+    } catch (e: any) {
+      console.warn(`⚠️  Warning: Could not upsert district ${code}: ${error.message}`);
+      return await prisma.district.findUnique({ where: { code } });
+    }
   }
 }
 
 /**
- * Upsert village with improved error handling and duplicate detection
+ * Upsert village with improved error handling - FIXED to match compound unique constraint
  */
 async function upsertVillage(
   code: string,
@@ -184,34 +221,49 @@ async function upsertVillage(
   type: 'village' | 'urban_village' = 'village'
 ): Promise<any> {
   try {
-    // First, try to find existing village
-    const existing = await prisma.village.findUnique({ where: { code } });
-    
-    if (existing) {
-      // If exists, update it
-      return await prisma.village.update({
+    return await prisma.village.upsert({
+      where: { 
+        code_districtId: {
+          code: code,
+          districtId: districtId
+        }
+      },
+      update: { name, type },
+      create: {
+        code,
+        name,
+        type,
+        districtId,
+      },
+    });
+  } catch (error: any) {
+    // Fallback: try using just code
+    try {
+      return await prisma.village.upsert({
         where: { code },
-        data: { name, type, districtId },
-      });
-    } else {
-      // If not exists, create it
-      return await prisma.village.create({
-        data: {
+        update: { name, type, districtId },
+        create: {
           code,
           name,
           type,
           districtId,
         },
       });
+    } catch (e: any) {
+      // Last resort: try to find and update
+      try {
+        const existing = await prisma.village.findUnique({ where: { code } });
+        if (existing) {
+          return await prisma.village.update({
+            where: { code },
+            data: { name, type, districtId },
+          });
+        }
+      } catch (finalError: any) {
+        console.warn(`⚠️  Warning: Could not upsert village ${code}: ${finalError.message}`);
+      }
+      return null;
     }
-  } catch (error: any) {
-    // If still fails, just skip silently (likely duplicate from concurrent operations)
-    if (error.code === 'P2002') {
-      // Duplicate key error - just return the existing record
-      return await prisma.village.findUnique({ where: { code } });
-    }
-    console.warn(`⚠️  Warning: Could not upsert village ${code}: ${error.message}`);
-    return null;
   }
 }
 
