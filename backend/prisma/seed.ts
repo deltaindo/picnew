@@ -159,14 +159,16 @@ async function main() {
     console.log('   Running: npx ts-node prisma/seeders/indonesian-regions.ts\n');
 
     try {
-      await execAsync('npx ts-node prisma/seeders/indonesian-regions.ts', {
+      const { stdout, stderr } = await execAsync('npx ts-node prisma/seeders/indonesian-regions.ts', {
         cwd: process.cwd(),
-        stdio: 'inherit',
       });
+      if (stdout) console.log(stdout);
+      if (stderr) console.error(stderr);
     } catch (error: any) {
       console.warn('⚠️  Warning: Indonesian regions seeder encountered an issue.');
       console.warn('   This is likely due to API rate limiting or network issues.');
-      console.warn('   You can run the seeder separately with: npx ts-node prisma/seeders/indonesian-regions.ts\n');
+      console.warn('   You can run the seeder separately with: npx ts-node prisma/seeders/indonesian-regions.ts');
+      console.warn(`   Error: ${error.message}\n`);
     }
 
     console.log('\n✅ Database seeded successfully!');
