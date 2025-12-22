@@ -23,6 +23,7 @@ export default function MasterDataPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const tabs = [
     { id: 'bidang', label: 'Bidang/Sektor', icon: '🏢' },
@@ -58,16 +59,34 @@ export default function MasterDataPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      alert('Nama tidak boleh kosong');
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
       const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/admin/master-data/${activeTab}`, formData, {
+      const payload = {
+        name: formData.name,
+        ...(formData.code && { code: formData.code }),
+        ...(formData.description && { description: formData.description }),
+      };
+
+      await axios.post(`${API_BASE_URL}/api/admin/master-data/${activeTab}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setFormData({ name: '', code: '', description: '' });
       setShowCreateModal(false);
-      fetchData();
+      await fetchData();
+      alert('Berhasil menambah data!');
     } catch (error: any) {
-      alert('Failed to create: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message || 'Gagal menambah data';
+      alert('Gagal: ' + errorMessage);
+      console.error('Create error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -78,9 +97,12 @@ export default function MasterDataPage() {
         await axios.delete(`${API_BASE_URL}/api/admin/master-data/${activeTab}/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        fetchData();
+        await fetchData();
+        alert('Berhasil menghapus data!');
       } catch (error: any) {
-        alert('Failed to delete: ' + (error.response?.data?.message || error.message));
+        const errorMessage = error.response?.data?.message || error.message || 'Gagal menghapus data';
+        alert('Gagal: ' + errorMessage);
+        console.error('Delete error:', error);
       }
     }
   };
@@ -120,7 +142,10 @@ export default function MasterDataPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setShowCreateModal(false);
+              }}
               className={`px-6 py-3 font-medium transition-colors whitespace-nowrap border-b-2 ${
                 activeTab === tab.id
                   ? 'text-blue-400 border-b-blue-400'
@@ -209,13 +234,14 @@ export default function MasterDataPage() {
 
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Nama</label>
+                  <label className="block text-white text-sm font-medium mb-2">Nama *</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -228,6 +254,7 @@ export default function MasterDataPage() {
                       onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                       className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                       placeholder="Optional"
+                      disabled={isSubmitting}
                     />
                   </div>
                 )}
@@ -240,6 +267,7 @@ export default function MasterDataPage() {
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
                     rows={3}
                     placeholder="Optional"
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -247,15 +275,17 @@ export default function MasterDataPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
-                    Create
+                    {isSubmitting ? 'Creating...' : 'Create'}
                   </button>
                 </div>
               </form>
