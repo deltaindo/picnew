@@ -37,9 +37,26 @@ router.get('/links/:token', async (req, res) => {
       });
     }
 
+    // Get required documents for this link
+    const docsResult = await pool.query(
+      `SELECT id, name, type 
+       FROM document_types 
+       WHERE id IN (
+         SELECT document_id FROM link_required_documents WHERE link_id = $1
+       )
+       ORDER BY name ASC`,
+      [link.id]
+    );
+
+    // If no specific documents linked, return empty array instead of error
+    const required_documents = docsResult.rows || [];
+
     res.json({
       success: true,
-      data: link,
+      data: {
+        ...link,
+        required_documents: required_documents,
+      },
     });
   } catch (error) {
     console.error('Get link error:', error);
@@ -54,8 +71,8 @@ router.get('/links/:token', async (req, res) => {
 router.post('/registrations', async (req, res) => {
   try {
     const {
-      token,
-      trainee_name,
+      link_id,
+      full_name,
       email,
       phone,
       nik,
@@ -65,23 +82,23 @@ router.post('/registrations', async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!token || !trainee_name || !email || !phone || !nik) {
+    if (!link_id || !full_name || !email || !phone || !nik) {
       return res.status(400).json({
         success: false,
-        message: 'Required fields: token, trainee_name, email, phone, nik',
+        message: 'Required fields: link_id, full_name, email, phone, nik',
       });
     }
 
-    // Get link ID from token
+    // Verify link exists and get its details
     const linkResult = await pool.query(
-      'SELECT id, current_registrations, max_registrations FROM registration_links WHERE token = $1',
-      [token]
+      'SELECT id, current_registrations, max_registrations FROM registration_links WHERE id = $1 AND status = \'active\'',
+      [link_id]
     );
 
     if (linkResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Registration link not found',
+        message: 'Registration link not found or inactive',
       });
     }
 
@@ -97,12 +114,12 @@ router.post('/registrations', async (req, res) => {
 
     // Create registration
     const registrationResult = await pool.query(
-      `INSERT INTO registrations (link_id, trainee_name, email, phone, nik, address, company, position, status, created_at)
+      `INSERT INTO registrations (link_id, full_name, email, phone, nik, address, company, position, status, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'submitted', NOW())
-       RETURNING id, trainee_name, email, link_id`,
+       RETURNING id, full_name, email, link_id`,
       [
-        link.id,
-        trainee_name,
+        link_id,
+        full_name,
         email,
         phone,
         nik,
@@ -117,7 +134,7 @@ router.post('/registrations', async (req, res) => {
     // Update current registrations count
     await pool.query(
       'UPDATE registration_links SET current_registrations = current_registrations + 1 WHERE id = $1',
-      [link.id]
+      [link_id]
     );
 
     res.json({
