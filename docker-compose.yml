@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -46,6 +46,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
+      - ./backend/package.json:/app/package.json
+      - ./backend/package-lock.json:/app/package-lock.json
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
     networks:
