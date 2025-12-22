@@ -34,6 +34,7 @@ export default function LinksPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     training_id: '',
     class_level: '',
@@ -45,6 +46,7 @@ export default function LinksPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token);
     if (!token) {
       router.push('/admin/login');
       return;
@@ -57,9 +59,11 @@ export default function LinksPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      console.log('Fetching links with API_BASE_URL:', API_BASE_URL);
       const response = await axios.get(`${API_BASE_URL}/api/admin/links`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Links response:', response.data);
       setLinks(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch links:', error);
@@ -71,9 +75,11 @@ export default function LinksPage() {
   const fetchTrainings = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching trainings...');
       const response = await axios.get(`${API_BASE_URL}/api/admin/training`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Trainings response:', response.data);
       setTrainings(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch trainings:', error);
@@ -82,11 +88,33 @@ export default function LinksPage() {
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.training_id) {
+      alert('Pilih training terlebih dahulu');
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
       const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/admin/links`, formData, {
+      const payload = {
+        training_id: formData.training_id,
+        class_level: formData.class_level || null,
+        personnel_type: formData.personnel_type || null,
+        max_registrations: parseInt(String(formData.max_registrations)) || 25,
+        expiry_date: formData.expiry_date || null,
+        whatsapp_link: formData.whatsapp_link || null,
+      };
+
+      console.log('Creating link with payload:', payload);
+      console.log('API URL:', `${API_BASE_URL}/api/admin/links`);
+      
+      const response = await axios.post(`${API_BASE_URL}/api/admin/links`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log('Create response:', response.data);
+      
       setFormData({
         training_id: '',
         class_level: '',
@@ -96,9 +124,14 @@ export default function LinksPage() {
         expiry_date: '',
       });
       setShowCreateModal(false);
-      fetchLinks();
+      await fetchLinks();
+      alert('✅ Link berhasil dibuat!');
     } catch (error: any) {
-      alert('Gagal membuat link: ' + (error.response?.data?.message || error.message));
+      console.error('Create error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Gagal membuat link';
+      alert('❌ Gagal: ' + errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -118,7 +151,7 @@ export default function LinksPage() {
   const copyToClipboard = (token: string) => {
     const linkUrl = `${window.location.origin}/register/${token}`;
     navigator.clipboard.writeText(linkUrl);
-    alert('Link copied to clipboard!');
+    alert('✅ Link copied to clipboard!');
   };
 
   if (loading) {
@@ -144,7 +177,10 @@ export default function LinksPage() {
             <p className="text-[#8fa3b8] mt-1">Kelola tautan pendaftaran peserta pelatihan</p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              console.log('Opening create modal');
+              setShowCreateModal(true);
+            }}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all inline-flex items-center gap-2 w-fit"
           >
             ➕ Buat Link Baru
@@ -176,12 +212,14 @@ export default function LinksPage() {
                   links.map((link) => (
                     <tr key={link.id} className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors">
                       <td className="px-4 py-3 text-white font-medium">{link.training_name}</td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">{link.class_level}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">{link.class_level || '-'}</td>
                       <td className="px-4 py-3 text-[#8fa3b8]">
                         <span className="text-blue-400 font-medium">{link.current_registrations}</span>
                         <span className="text-[#8fa3b8]">/{link.max_registrations}</span>
                       </td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">{new Date(link.expiry_date).toLocaleDateString('id-ID')}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">
+                        {link.expiry_date ? new Date(link.expiry_date).toLocaleDateString('id-ID') : '-'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-3 py-1 rounded text-xs font-medium ${getStatusColor(link.status)}`}>
                           {link.status === 'active' && '✓ Active'}
@@ -204,12 +242,6 @@ export default function LinksPage() {
                             className="text-[#8fa3b8] hover:text-green-400 transition-colors text-lg"
                           >
                             👁️
-                          </button>
-                          <button
-                            title="Edit"
-                            className="text-[#8fa3b8] hover:text-yellow-400 transition-colors text-lg"
-                          >
-                            ✏️
                           </button>
                         </div>
                       </td>
@@ -240,28 +272,35 @@ export default function LinksPage() {
                   <label className="block text-white text-sm font-medium mb-2">Training *</label>
                   <select
                     value={formData.training_id}
-                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
+                    onChange={(e) => {
+                      console.log('Selected training:', e.target.value);
+                      setFormData({ ...formData, training_id: e.target.value });
+                    }}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     required
+                    disabled={isSubmitting}
                   >
-                    <option value="">Pilih Training</option>
+                    <option value="">-- Pilih Training --</option>
                     {trainings.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
                       </option>
                     ))}
                   </select>
+                  {trainings.length === 0 && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ Tidak ada training tersedia</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Class Level *</label>
+                  <label className="block text-white text-sm font-medium mb-2">Class Level</label>
                   <input
                     type="text"
                     value={formData.class_level}
                     onChange={(e) => setFormData({ ...formData, class_level: e.target.value })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="e.g., AHLI, SUPERVISI"
-                    required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -273,6 +312,7 @@ export default function LinksPage() {
                     onChange={(e) => setFormData({ ...formData, personnel_type: e.target.value })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="e.g., OPERATOR, TEKNISI"
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -281,20 +321,21 @@ export default function LinksPage() {
                   <input
                     type="number"
                     value={formData.max_registrations}
-                    onChange={(e) => setFormData({ ...formData, max_registrations: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, max_registrations: parseInt(e.target.value) || 25 })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     min="1"
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Expiry Date *</label>
+                  <label className="block text-white text-sm font-medium mb-2">Expiry Date</label>
                   <input
                     type="date"
                     value={formData.expiry_date}
                     onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -306,6 +347,7 @@ export default function LinksPage() {
                     onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
                     className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="https://chat.whatsapp.com/..."
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -313,15 +355,17 @@ export default function LinksPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
-                    Create
+                    {isSubmitting ? '⏳ Creating...' : '✅ Create'}
                   </button>
                 </div>
               </form>
@@ -350,7 +394,7 @@ export default function LinksPage() {
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Class Level</p>
-                  <p className="text-white font-semibold">{selectedLink.class_level}</p>
+                  <p className="text-white font-semibold">{selectedLink.class_level || '-'}</p>
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Registration URL</p>
@@ -379,7 +423,9 @@ export default function LinksPage() {
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Expiry Date</p>
-                  <p className="text-white font-semibold">{new Date(selectedLink.expiry_date).toLocaleDateString('id-ID')}</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.expiry_date ? new Date(selectedLink.expiry_date).toLocaleDateString('id-ID') : '-'}
+                  </p>
                 </div>
               </div>
 
