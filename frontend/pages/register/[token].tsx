@@ -17,7 +17,7 @@ interface RegistrationLink {
   max_registrations: number;
   current_registrations: number;
   whatsapp_link: string;
-  required_documents: Array<{
+  required_documents?: Array<{
     id: string;
     name: string;
     type: string;
@@ -53,7 +53,13 @@ export default function RegisterPage() {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/api/public/links/${token}`);
-      setLink(response.data.data);
+      const data = response.data.data;
+      
+      // Ensure required_documents is always an array
+      setLink({
+        ...data,
+        required_documents: data.required_documents || [],
+      });
     } catch (error: any) {
       setError(error.response?.data?.message || 'Link tidak ditemukan atau sudah expired');
     } finally {
@@ -71,9 +77,14 @@ export default function RegisterPage() {
 
       // Create FormData for file upload
       const submitData = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        submitData.append(key, value);
-      });
+      submitData.append('link_id', link.id);
+      submitData.append('full_name', formData.full_name);
+      submitData.append('email', formData.email);
+      submitData.append('phone', formData.phone);
+      submitData.append('nik', formData.nik);
+      submitData.append('address', formData.address);
+      submitData.append('company', formData.company);
+      submitData.append('position', formData.position);
 
       // Add files
       Object.entries(documents).forEach(([key, file]) => {
@@ -129,6 +140,8 @@ export default function RegisterPage() {
   }
 
   if (!link) return null;
+
+  const requiredDocuments = link.required_documents || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2332] to-[#0f1619] py-12 px-4">
@@ -267,34 +280,36 @@ export default function RegisterPage() {
           </div>
 
           {/* Documents */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">📄 Dokumen yang Diperlukan</h3>
-            <div className="space-y-3">
-              {link.required_documents.map((doc) => (
-                <div key={doc.id} className="p-4 bg-[#1a2332] rounded-lg border border-[#2d3e52]">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setDocuments({ ...documents, [doc.id]: file });
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <span className="text-xl">📎</span>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{doc.name}</p>
-                      <p className="text-[#8fa3b8] text-sm">
-                        {documents[doc.id] ? documents[doc.id]?.name : 'Klik untuk upload'}
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              ))}
+          {requiredDocuments.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4">📄 Dokumen yang Diperlukan</h3>
+              <div className="space-y-3">
+                {requiredDocuments.map((doc) => (
+                  <div key={doc.id} className="p-4 bg-[#1a2332] rounded-lg border border-[#2d3e52]">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setDocuments({ ...documents, [doc.id]: file });
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <span className="text-xl">📎</span>
+                      <div className="flex-1">
+                        <p className="text-white font-medium">{doc.name}</p>
+                        <p className="text-[#8fa3b8] text-sm">
+                          {documents[doc.id] ? documents[doc.id]?.name : 'Klik untuk upload'}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Submit Button */}
           <button
