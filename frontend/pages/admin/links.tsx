@@ -27,21 +27,36 @@ interface Training {
   name: string;
 }
 
+interface Bidang {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Kelas {
+  id: string;
+  name: string;
+}
+
 export default function LinksPage() {
   const router = useRouter();
   const [links, setLinks] = useState<RegistrationLink[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
+  const [bidangs, setBidangs] = useState<Bidang[]>([]);
+  const [kelas, setKelas] = useState<Kelas[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    bidang_id: '',
     training_id: '',
-    class_level: '',
-    personnel_type: '',
-    max_registrations: 25,
+    class_id: '',
+    start_date: '',
+    end_date: '',
+    program: '',
     whatsapp_link: '',
-    expiry_date: '',
+    location: '',
   });
 
   useEffect(() => {
@@ -52,7 +67,7 @@ export default function LinksPage() {
       return;
     }
     fetchLinks();
-    fetchTrainings();
+    fetchMasterData();
   }, [router]);
 
   const fetchLinks = async () => {
@@ -72,17 +87,35 @@ export default function LinksPage() {
     }
   };
 
-  const fetchTrainings = async () => {
+  const fetchMasterData = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching trainings...');
-      const response = await axios.get(`${API_BASE_URL}/api/admin/training`, {
-        headers: { Authorization: `Bearer ${token}` },
+      console.log('Fetching master data...');
+      
+      // Fetch all master data in parallel
+      const [trainingsRes, bidangsRes, kelasRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/admin/training`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE_URL}/api/admin/master-data/bidang`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE_URL}/api/admin/master-data/class`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      console.log('Master data responses:', {
+        trainings: trainingsRes.data,
+        bidangs: bidangsRes.data,
+        kelas: kelasRes.data,
       });
-      console.log('Trainings response:', response.data);
-      setTrainings(response.data.data || []);
+
+      setTrainings(trainingsRes.data.data || []);
+      setBidangs(bidangsRes.data.data || []);
+      setKelas(kelasRes.data.data || []);
     } catch (error) {
-      console.error('Failed to fetch trainings:', error);
+      console.error('Failed to fetch master data:', error);
     }
   };
 
@@ -97,13 +130,17 @@ export default function LinksPage() {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
+      
+      // Build payload matching backend expectations
       const payload = {
         training_id: formData.training_id,
-        class_level: formData.class_level || null,
-        personnel_type: formData.personnel_type || null,
-        max_registrations: parseInt(String(formData.max_registrations)) || 25,
-        expiry_date: formData.expiry_date || null,
+        class_level: formData.class_id || null,
+        program: formData.program || null,
+        location: formData.location || null,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
         whatsapp_link: formData.whatsapp_link || null,
+        max_registrations: 25,
       };
 
       console.log('Creating link with payload:', payload);
@@ -116,12 +153,14 @@ export default function LinksPage() {
       console.log('Create response:', response.data);
       
       setFormData({
+        bidang_id: '',
         training_id: '',
-        class_level: '',
-        personnel_type: '',
-        max_registrations: 25,
+        class_id: '',
+        start_date: '',
+        end_date: '',
+        program: '',
         whatsapp_link: '',
-        expiry_date: '',
+        location: '',
       });
       setShowCreateModal(false);
       await fetchLinks();
@@ -253,30 +292,46 @@ export default function LinksPage() {
           </div>
         </div>
 
-        {/* Create Link Modal */}
+        {/* Create Link Modal - Matching the screenshot form */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">Buat Link Pendaftaran Baru</h2>
+                <h2 className="text-xl font-bold text-gray-900">Tambah Link Pendaftaran</h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="text-[#8fa3b8] hover:text-white text-2xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
                 >
                   ✕
                 </button>
               </div>
 
               <form onSubmit={handleCreateLink} className="space-y-4">
+                {/* Bidang */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Training *</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Bidang</label>
+                  <select
+                    value={formData.bidang_id}
+                    onChange={(e) => setFormData({ ...formData, bidang_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    <option value="">-- Pilih Bidang --</option>
+                    {bidangs.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Training */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Training</label>
                   <select
                     value={formData.training_id}
-                    onChange={(e) => {
-                      console.log('Selected training:', e.target.value);
-                      setFormData({ ...formData, training_id: e.target.value });
-                    }}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                     required
                     disabled={isSubmitting}
                   >
@@ -288,74 +343,98 @@ export default function LinksPage() {
                     ))}
                   </select>
                   {trainings.length === 0 && (
-                    <p className="text-red-400 text-xs mt-1">⚠️ Tidak ada training tersedia</p>
+                    <p className="text-red-500 text-xs mt-1">⚠️ Tidak ada training tersedia</p>
                   )}
                 </div>
 
+                {/* Kelas */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Class Level</label>
-                  <input
-                    type="text"
-                    value={formData.class_level}
-                    onChange={(e) => setFormData({ ...formData, class_level: e.target.value })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="e.g., AHLI, SUPERVISI"
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Kelas</label>
+                  <select
+                    value={formData.class_id}
+                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                     disabled={isSubmitting}
-                  />
+                  >
+                    <option value="">-- Pilih Kelas --</option>
+                    {kelas.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">Personnel Type</label>
-                  <input
-                    type="text"
-                    value={formData.personnel_type}
-                    onChange={(e) => setFormData({ ...formData, personnel_type: e.target.value })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="e.g., OPERATOR, TEKNISI"
-                    disabled={isSubmitting}
-                  />
+                {/* Tanggal Mulai Training & Tanggal Selesai (side by side) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-2">Tanggal Mulai Training</label>
+                    <input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-2">Tanggal Selesai</label>
+                    <input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
 
+                {/* Program */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Max Registrations</label>
-                  <input
-                    type="number"
-                    value={formData.max_registrations}
-                    onChange={(e) => setFormData({ ...formData, max_registrations: parseInt(e.target.value) || 25 })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    min="1"
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Program</label>
+                  <select
+                    value={formData.program}
+                    onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                     disabled={isSubmitting}
-                  />
+                  >
+                    <option value="">-- Pilih Program --</option>
+                    <option value="Inhouse">Inhouse / Reguler / Mitra PJK3</option>
+                  </select>
                 </div>
 
+                {/* Link Grup Whatsapp */}
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Expiry Date</label>
-                  <input
-                    type="date"
-                    value={formData.expiry_date}
-                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">WhatsApp Group Link</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Link Grup Whatsapp</label>
                   <input
                     type="url"
                     value={formData.whatsapp_link}
                     onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="https://chat.whatsapp.com/..."
                     disabled={isSubmitting}
                   />
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                {/* Tempat Pelaksanaan */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Tempat Pelaksanaan</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., Bekasi Training Center"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Button */}
+                <div className="flex gap-3 mt-8 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors font-medium disabled:opacity-50"
                     disabled={isSubmitting}
                   >
                     Cancel
@@ -365,7 +444,7 @@ export default function LinksPage() {
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? '⏳ Creating...' : '✅ Create'}
+                    {isSubmitting ? '⏳ Membuat...' : '✅ Buat'}
                   </button>
                 </div>
               </form>
