@@ -25,6 +25,82 @@ model User {
   auditLogs AuditLog[]
 }
 
+// ==================== INDONESIAN REGIONS ====================
+// Complete hierarchy of Indonesian administrative regions
+// Provinces -> Regencies/Cities -> Districts -> Villages
+
+// Province (Provinsi) - Level 1
+model Province {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(10)  // e.g., "11", "12"
+  name      String    @unique @db.VarChar(255) // e.g., "ACEH", "SUMATERA UTARA"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  regencies Regency[]
+
+  @@index([code])
+  @@index([name])
+}
+
+// Regency/City (Kabupaten/Kota) - Level 2
+model Regency {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique @db.VarChar(20)  // e.g., "11.01", "31.71"
+  name        String    @db.VarChar(255)         // e.g., "KAB. ACEH SELATAN", "KOTA MEDAN"
+  type        String    @default("regency") @db.VarChar(20) // "regency" or "city"
+  provinceId  Int
+  province    Province  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  districts   District[]
+
+  @@unique([code, provinceId])
+  @@index([provinceId])
+  @@index([code])
+  @@index([name])
+  @@index([type])
+}
+
+// District (Kecamatan) - Level 3
+model District {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(20)  // e.g., "11.01.01", "31.71.01"
+  name      String    @db.VarChar(255)         // e.g., "Bakongan", "Medan Maimun"
+  regencyId Int
+  regency   Regency   @relation(fields: [regencyId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  villages  Village[]
+
+  @@unique([code, regencyId])
+  @@index([regencyId])
+  @@index([code])
+  @@index([name])
+}
+
+// Village (Desa/Kelurahan) - Level 4
+model Village {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(20)  // e.g., "11.01.01.2001", "31.71.01.1001"
+  name      String    @db.VarChar(255)         // e.g., "Keude Bakongan", "Barat"
+  type      String    @default("village") @db.VarChar(20) // "village" or "urban_village" (desa/kelurahan)
+  districtId Int
+  district  District  @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([code, districtId])
+  @@index([districtId])
+  @@index([code])
+  @@index([name])
+  @@index([type])
+}
+
+// ==================== END INDONESIAN REGIONS ====================
+
 // Bidang - Sectors/Fields (e.g., LISTRIK, PAA, K3 UMUM)
 model Bidang {
   id          Int                  @id @default(autoincrement())
