@@ -22,12 +22,26 @@ interface RegistrationLink {
   created_at: string;
 }
 
+interface Training {
+  id: string;
+  name: string;
+}
+
 export default function LinksPage() {
   const router = useRouter();
   const [links, setLinks] = useState<RegistrationLink[]>([]);
+  const [trainings, setTrainings] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(null);
+  const [formData, setFormData] = useState({
+    training_id: '',
+    class_level: '',
+    personnel_type: '',
+    max_registrations: 25,
+    whatsapp_link: '',
+    expiry_date: '',
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -36,6 +50,7 @@ export default function LinksPage() {
       return;
     }
     fetchLinks();
+    fetchTrainings();
   }, [router]);
 
   const fetchLinks = async () => {
@@ -50,6 +65,40 @@ export default function LinksPage() {
       console.error('Failed to fetch links:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrainings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/api/admin/training`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTrainings(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch trainings:', error);
+    }
+  };
+
+  const handleCreateLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/api/admin/links`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFormData({
+        training_id: '',
+        class_level: '',
+        personnel_type: '',
+        max_registrations: 25,
+        whatsapp_link: '',
+        expiry_date: '',
+      });
+      setShowCreateModal(false);
+      fetchLinks();
+    } catch (error: any) {
+      alert('Gagal membuat link: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -171,6 +220,114 @@ export default function LinksPage() {
             </table>
           </div>
         </div>
+
+        {/* Create Link Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">Buat Link Pendaftaran Baru</h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-[#8fa3b8] hover:text-white text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateLink} className="space-y-4">
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">Training *</label>
+                  <select
+                    value={formData.training_id}
+                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    required
+                  >
+                    <option value="">Pilih Training</option>
+                    {trainings.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">Class Level *</label>
+                  <input
+                    type="text"
+                    value={formData.class_level}
+                    onChange={(e) => setFormData({ ...formData, class_level: e.target.value })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., AHLI, SUPERVISI"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">Personnel Type</label>
+                  <input
+                    type="text"
+                    value={formData.personnel_type}
+                    onChange={(e) => setFormData({ ...formData, personnel_type: e.target.value })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., OPERATOR, TEKNISI"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">Max Registrations</label>
+                  <input
+                    type="number"
+                    value={formData.max_registrations}
+                    onChange={(e) => setFormData({ ...formData, max_registrations: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">Expiry Date *</label>
+                  <input
+                    type="date"
+                    value={formData.expiry_date}
+                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white text-sm font-medium mb-2">WhatsApp Group Link</label>
+                  <input
+                    type="url"
+                    value={formData.whatsapp_link}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
+                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="https://chat.whatsapp.com/..."
+                  />
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Link Details Modal */}
         {selectedLink && (
