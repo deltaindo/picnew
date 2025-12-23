@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
 
 // Error handler utility
 const handleError = (error: any, res: Response, context: string) => {
