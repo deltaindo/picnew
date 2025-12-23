@@ -34,13 +34,15 @@ interface RegistrationLink {
     id: number;
     name: string;
   }>;
-  trainings?: Array<{
+  trainingPrograms?: Array<{
     id: number;
     name: string;
+    bidangId: number;
   }>;
-  classes?: Array<{
+  trainingClasses?: Array<{
     id: number;
     name: string;
+    level?: number;
   }>;
 }
 
@@ -99,9 +101,11 @@ export default function RegisterPage() {
   const [subdistricts, setSubdistricts] = useState<CascadingLocation[]>([]);
   const [villages, setVillages] = useState<CascadingLocation[]>([]);
 
-  // New cascading training states
-  const [trainings, setTrainings] = useState<CascadingLocation[]>([]);
-  const [classes, setClasses] = useState<CascadingLocation[]>([]);
+  // Cascading training states - CORRECTED
+  const [bidangOptions, setBidangOptions] = useState<{ id: number; name: string }[]>([]);
+  const [allTrainingPrograms, setAllTrainingPrograms] = useState<any[]>([]);
+  const [filteredTrainingPrograms, setFilteredTrainingPrograms] = useState<any[]>([]);
+  const [trainingClassOptions, setTrainingClassOptions] = useState<{ id: number; name: string; level?: number }[]>([]);
 
   useEffect(() => {
     // Check saved theme preference
@@ -126,14 +130,19 @@ export default function RegisterPage() {
       const response = await axios.get(`${API_BASE_URL}/api/public/links/${token}`);
       const data = response.data.data;
       
+      // Set dropdown options from link response
+      setBidangOptions(data.bidang || []);
+      setAllTrainingPrograms(data.trainingPrograms || []);
+      setTrainingClassOptions(data.trainingClasses || []);
+
       setLink({
         ...data,
         required_documents: data.required_documents || [],
         provinces: data.provinces || [],
         education_levels: data.education_levels || [],
         bidang: data.bidang || [],
-        trainings: data.trainings || [],
-        classes: data.classes || [],
+        trainingPrograms: data.trainingPrograms || [],
+        trainingClasses: data.trainingClasses || [],
       });
     } catch (error: any) {
       setError(error.response?.data?.message || 'Link tidak ditemukan atau sudah expired');
@@ -142,35 +151,26 @@ export default function RegisterPage() {
     }
   };
 
-  const fetchTrainings = async (bidangId: string) => {
-    if (!bidangId) {
-      setTrainings([]);
-      setClasses([]);
-      setFormData({ ...formData, training_id: '', kelas_id: '' });
-      return;
-    }
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/public/trainings?bidang_id=${bidangId}`);
-      setTrainings(response.data.data || []);
-      setClasses([]);
-      setFormData({ ...formData, training_id: '', kelas_id: '' });
-    } catch (error) {
-      console.error('Error fetching trainings:', error);
+  // CORRECTED: Filter training programs by selected bidang
+  const handleBidangChange = (bidangId: string) => {
+    setFormData({ ...formData, bidang_id: bidangId, training_id: '', kelas_id: '' });
+    
+    if (bidangId) {
+      const filtered = allTrainingPrograms.filter((tp) => tp.bidangId === parseInt(bidangId));
+      setFilteredTrainingPrograms(filtered);
+    } else {
+      setFilteredTrainingPrograms([]);
     }
   };
 
-  const fetchClasses = async (trainingId: string) => {
-    if (!trainingId) {
-      setClasses([]);
-      return;
-    }
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/public/classes?training_id=${trainingId}`);
-      setClasses(response.data.data || []);
-      setFormData({ ...formData, kelas_id: '' });
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    }
+  // TrainingProgram selected - no filtering needed for TrainingClass (it's standalone)
+  const handleTrainingProgramChange = (programId: string) => {
+    setFormData({ ...formData, training_id: programId, kelas_id: '' });
+  };
+
+  // TrainingClass selected
+  const handleTrainingClassChange = (classId: string) => {
+    setFormData({ ...formData, kelas_id: classId });
   };
 
   const fetchDistricts = async (provinceId: string) => {
@@ -225,9 +225,7 @@ export default function RegisterPage() {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Handle cascading dropdowns
-    if (name === 'bidang_id') fetchTrainings(value);
-    if (name === 'training_id') fetchClasses(value);
+    // Handle cascading dropdowns for LOCATION only (training cascading handled separately)
     if (name === 'province_id') fetchDistricts(value);
     if (name === 'district_id') fetchSubdistricts(value);
     if (name === 'subdistrict_id') fetchVillages(value);
@@ -335,7 +333,6 @@ export default function RegisterPage() {
   const requiredDocuments = link.required_documents || [];
   const provinces = link.provinces || [];
   const educationLevels = link.education_levels || [];
-  const bidangList = link.bidang || [];
 
   return (
     <div className={`min-h-screen py-12 px-4 ${
@@ -477,12 +474,12 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          {/* Step 1: Training Selection */}
+          {/* Step 1: Training Selection - CORRECTED */}
           {currentStep === 1 && (
             <div className="space-y-4">
               <h3 className={`text-lg font-semibold mb-4 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>🎯 Pilih Bidang & Pelatihan</h3>
+              }`}>🎯 Pilih Bidang, Program Pelatihan & Kelas</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
@@ -491,7 +488,7 @@ export default function RegisterPage() {
                   <select
                     name="bidang_id"
                     value={formData.bidang_id}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleBidangChange(e.target.value)}
                     className={`w-full px-4 py-2 rounded border focus:outline-none focus:border-blue-500 ${
                       isDarkMode
                         ? 'bg-[#1a2332] border-[#2d3e52] text-white'
@@ -499,8 +496,8 @@ export default function RegisterPage() {
                     }`}
                     required
                   >
-                    <option value="">Pilih Bidang</option>
-                    {bidangList.map((bidang) => (
+                    <option value="">-- Pilih Bidang --</option>
+                    {bidangOptions.map((bidang) => (
                       <option key={bidang.id} value={bidang.id}>
                         {bidang.name}
                       </option>
@@ -510,12 +507,12 @@ export default function RegisterPage() {
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>Pelatihan *</label>
+                  }`}>Program Pelatihan *</label>
                   <select
                     name="training_id"
                     value={formData.training_id}
-                    onChange={handleInputChange}
-                    disabled={!formData.bidang_id}
+                    onChange={(e) => handleTrainingProgramChange(e.target.value)}
+                    disabled={!formData.bidang_id || filteredTrainingPrograms.length === 0}
                     className={`w-full px-4 py-2 rounded border focus:outline-none focus:border-blue-500 ${
                       isDarkMode
                         ? 'bg-[#1a2332] border-[#2d3e52] text-white disabled:opacity-50'
@@ -523,13 +520,18 @@ export default function RegisterPage() {
                     }`}
                     required
                   >
-                    <option value="">Pilih Pelatihan</option>
-                    {trainings.map((training) => (
-                      <option key={training.id} value={training.id}>
-                        {training.name}
+                    <option value="">-- Pilih Program --</option>
+                    {filteredTrainingPrograms.map((program: any) => (
+                      <option key={program.id} value={program.id}>
+                        {program.name}
                       </option>
                     ))}
                   </select>
+                  {formData.bidang_id && filteredTrainingPrograms.length === 0 && (
+                    <p className={`text-sm mt-1 ${
+                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    }`}>⚠️ Tidak ada program untuk bidang ini</p>
+                  )}
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
@@ -538,8 +540,8 @@ export default function RegisterPage() {
                   <select
                     name="kelas_id"
                     value={formData.kelas_id}
-                    onChange={handleInputChange}
-                    disabled={!formData.training_id}
+                    onChange={(e) => handleTrainingClassChange(e.target.value)}
+                    disabled={trainingClassOptions.length === 0}
                     className={`w-full px-4 py-2 rounded border focus:outline-none focus:border-blue-500 ${
                       isDarkMode
                         ? 'bg-[#1a2332] border-[#2d3e52] text-white disabled:opacity-50'
@@ -547,8 +549,8 @@ export default function RegisterPage() {
                     }`}
                     required
                   >
-                    <option value="">Pilih Kelas</option>
-                    {classes.map((kelas) => (
+                    <option value="">-- Pilih Kelas --</option>
+                    {trainingClassOptions.map((kelas) => (
                       <option key={kelas.id} value={kelas.id}>
                         {kelas.name}
                       </option>
@@ -647,7 +649,7 @@ export default function RegisterPage() {
                     }`}
                   >
                     <option value="">Pilih Pendidikan</option>
-                    {educationLevels.map((edu) => (
+                    {educationLevels.map((edu: any) => (
                       <option key={edu.id} value={edu.name}>
                         {edu.name}
                       </option>
@@ -728,7 +730,7 @@ export default function RegisterPage() {
                     }`}
                   >
                     <option value="">Pilih Provinsi</option>
-                    {provinces.map((prov) => (
+                    {provinces.map((prov: any) => (
                       <option key={prov.id} value={prov.id}>
                         {prov.name}
                       </option>
@@ -984,7 +986,7 @@ export default function RegisterPage() {
                 isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
               }`}>Format: PDF, JPG, PNG | Ukuran maksimal: 2MB</p>
               <div className="space-y-3">
-                {requiredDocuments.map((doc) => (
+                {requiredDocuments.map((doc: any) => (
                   <div key={doc.id} className={`p-4 rounded-lg border ${
                     isDarkMode
                       ? 'bg-[#1a2332] border-[#2d3e52]'
