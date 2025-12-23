@@ -34,19 +34,37 @@ router.post('/training', authMiddleware, createTraining);
 router.put('/training/:id', authMiddleware, updateTraining);
 router.delete('/training/:id', authMiddleware, deleteTraining);
 
-// Bidang routes
+// ============ MASTER DATA ROUTES ============
+// All master data endpoints grouped under /master-data/:type
+// Supports: bidang, classes, personnel-types, document-types
+
+// Bidang routes (with /master-data prefix)
+router.get('/master-data/bidang', authMiddleware, getBidang);
+router.post('/master-data/bidang', authMiddleware, createBidang);
+router.put('/master-data/bidang/:id', authMiddleware, updateBidang);
+router.delete('/master-data/bidang/:id', authMiddleware, deleteBidang);
+
+// Classes routes (with /master-data prefix)
+router.get('/master-data/classes', authMiddleware, getClasses);
+router.post('/master-data/classes', authMiddleware, createClass);
+router.put('/master-data/classes/:id', authMiddleware, updateClass);
+router.delete('/master-data/classes/:id', authMiddleware, deleteClass);
+
+// Personnel types routes (with /master-data prefix)
+router.get('/master-data/personnel_types', authMiddleware, getPersonnelTypes);
+router.post('/master-data/personnel_types', authMiddleware, createPersonnelType);
+
+// Legacy routes (keep for backward compatibility)
 router.get('/bidang', authMiddleware, getBidang);
 router.post('/bidang', authMiddleware, createBidang);
 router.put('/bidang/:id', authMiddleware, updateBidang);
 router.delete('/bidang/:id', authMiddleware, deleteBidang);
 
-// Classes routes
 router.get('/classes', authMiddleware, getClasses);
 router.post('/classes', authMiddleware, createClass);
 router.put('/classes/:id', authMiddleware, updateClass);
 router.delete('/classes/:id', authMiddleware, deleteClass);
 
-// Personnel types routes
 router.get('/personnel-types', authMiddleware, getPersonnelTypes);
 router.post('/personnel-types', authMiddleware, createPersonnelType);
 
