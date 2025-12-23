@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const pool = require('./db');
+const { errorHandler } = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -28,12 +29,25 @@ app.use((req, res, next) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date(),
-    backend: 'running',
-  });
+app.get('/health', async (req, res, next) => {
+  try {
+    // Test database connectivity
+    await pool.query('SELECT 1');
+    res.json({
+      status: 'OK',
+      timestamp: new Date(),
+      backend: 'running',
+      database: 'connected',
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'DOWN',
+      timestamp: new Date(),
+      backend: 'running',
+      database: 'disconnected',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
 });
 
 // API info endpoint
@@ -84,21 +98,7 @@ console.log('   ✅ /api/admin/master-data');
 app.use('/api/public', publicRoutes);
 console.log('   ✅ /api/public');
 
-// Error handling middleware (MUST be after all routes)
-app.use((err, req, res, next) => {
-  console.error('\n❌ ERROR HANDLER TRIGGERED');
-  console.error('Path:', req.path);
-  console.error('Method:', req.method);
-  console.error('Message:', err.message);
-
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
-
-// 404 handler (MUST be last)
+// 404 handler (MUST be before error handler)
 app.use((req, res) => {
   console.error('\n⚠️  404 - Route not found');
   console.error('Requested:', `${req.method} ${req.path}`);
@@ -111,6 +111,9 @@ app.use((req, res) => {
     hint: 'Check endpoint. Try GET /api for available endpoints.',
   });
 });
+
+// CRITICAL: Error handling middleware (MUST be LAST)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
