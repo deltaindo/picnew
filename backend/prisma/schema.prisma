@@ -154,6 +154,14 @@ model PersonnelType {
   links RegistrationLink[]
 }
 
+// Document Types (e.g., Surat, Ijazah, KTP)
+model DocumentType {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 // Equipment Types (e.g., MOBILE CRANE, TOWER CRANE)
 model EquipmentType {
   id        Int       @id @default(autoincrement())
