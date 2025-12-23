@@ -3,18 +3,12 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const { validateLogin, validateInitAdmin, handleValidationErrors } = require('../middleware/validate');
 
-// Login
-router.post('/login', async (req, res) => {
+// Login with validation
+router.post('/login', validateLogin, handleValidationErrors, async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password required',
-      });
-    }
 
     // Get user from database
     const result = await pool.query(
@@ -68,33 +62,14 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-    });
+    next(error);
   }
 });
 
-// Initialize admin (STRICTLY ONE-TIME ONLY)
-router.post('/init-admin', async (req, res) => {
+// Initialize admin (STRICTLY ONE-TIME ONLY) with validation
+router.post('/init-admin', validateInitAdmin, handleValidationErrors, async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password required',
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters',
-      });
-    }
 
     // Check if ANY users exist (strict enforcement)
     const usersResult = await pool.query('SELECT COUNT(*) as count FROM users');
@@ -154,25 +129,12 @@ router.post('/init-admin', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Init admin error:', error);
-    
-    // Handle unique constraint violations
-    if (error.code === '23505') {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already exists',
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-    });
+    next(error);
   }
 });
 
 // Check system status (is admin initialized?)
-router.get('/status', async (req, res) => {
+router.get('/status', async (req, res, next) => {
   try {
     const result = await pool.query('SELECT COUNT(*) as count FROM users');
     const userCount = parseInt(result.rows[0].count);
@@ -191,11 +153,7 @@ router.get('/status', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Status check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-    });
+    next(error);
   }
 });
 
