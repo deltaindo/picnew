@@ -19,6 +19,12 @@ import {
   getPersonnelTypes,
   createPersonnelType,
 } from '../controllers/masterDataController';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from '../controllers/usersController';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -33,6 +39,12 @@ router.get('/training/:id', authMiddleware, getTrainingById);
 router.post('/training', authMiddleware, createTraining);
 router.put('/training/:id', authMiddleware, updateTraining);
 router.delete('/training/:id', authMiddleware, deleteTraining);
+
+// ============ USERS (ADMIN ACCOUNTS) ============
+router.get('/users', authMiddleware, getUsers);
+router.post('/users', authMiddleware, createUser);
+router.put('/users/:id', authMiddleware, updateUser);
+router.delete('/users/:id', authMiddleware, deleteUser);
 
 // ============ MASTER DATA ROUTES ============
 // All master data endpoints grouped under /master-data/:type
