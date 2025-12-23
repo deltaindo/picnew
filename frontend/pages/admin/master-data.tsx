@@ -14,6 +14,7 @@ interface MasterDataItem {
   name: string;
   code?: string;
   description?: string;
+  level?: number;
 }
 
 export default function MasterDataPage() {
@@ -22,7 +23,7 @@ export default function MasterDataPage() {
   const [items, setItems] = useState<MasterDataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+  const [formData, setFormData] = useState({ name: '', code: '', description: '', level: '1' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const tabs = [
@@ -67,17 +68,23 @@ export default function MasterDataPage() {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
-      const payload = {
-        name: formData.name,
-        ...(formData.code && { code: formData.code }),
-        ...(formData.description && { description: formData.description }),
-      };
+      
+      let payload: any = { name: formData.name };
+      
+      // Only add fields that exist for each tab
+      if (activeTab === 'bidang' || activeTab === 'document_types') {
+        if (formData.code) payload.code = formData.code;
+        if (formData.description) payload.description = formData.description;
+      } else if (activeTab === 'classes') {
+        if (formData.level) payload.level = Number(formData.level);
+        // Note: classes don't have description field in database
+      }
 
       await axios.post(`${API_BASE_URL}/api/admin/master-data/${activeTab}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setFormData({ name: '', code: '', description: '' });
+      setFormData({ name: '', code: '', description: '', level: '1' });
       setShowCreateModal(false);
       await fetchData();
       alert('Berhasil menambah data!');
@@ -198,6 +205,9 @@ export default function MasterDataPage() {
                       {item.code && (
                         <p className="text-[#8fa3b8] text-sm mt-1">Code: {item.code}</p>
                       )}
+                      {item.level && (
+                        <p className="text-[#8fa3b8] text-sm mt-1">Level: {item.level}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       <button
@@ -259,17 +269,34 @@ export default function MasterDataPage() {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">Deskripsi</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                    rows={3}
-                    placeholder="Optional"
-                    disabled={isSubmitting}
-                  />
-                </div>
+                {activeTab === 'classes' && (
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">Level</label>
+                    <input
+                      type="number"
+                      value={formData.level}
+                      onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                      className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors"
+                      min="1"
+                      placeholder="1"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
+
+                {(activeTab === 'bidang' || activeTab === 'document_types') && (
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">Deskripsi</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                      rows={3}
+                      placeholder="Optional"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
 
                 <div className="flex gap-3 mt-6">
                   <button
