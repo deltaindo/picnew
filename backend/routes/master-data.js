@@ -11,6 +11,14 @@ const TABLE_MAPPING = {
   'document_types': 'DocumentType'
 };
 
+// Column mapping - which columns exist for each table
+const COLUMN_MAPPING = {
+  'Bidang': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
+  'TrainingClass': ['id', 'name', 'level', 'createdAt', 'updatedAt'],  // NO description!
+  'PersonnelType': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
+  'DocumentType': ['id', 'name', 'createdAt', 'updatedAt']  // NO description, NO level!
+};
+
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
 
 // List master data by type
@@ -26,8 +34,18 @@ router.get('/:type', auth, async (req, res) => {
     }
 
     const tableName = TABLE_MAPPING[type];
+    
+    // Build SELECT clause based on what columns actually exist
+    let selectClause = 'id, name';
+    if (tableName === 'Bidang') {
+      selectClause += ', description';
+    } else if (tableName === 'TrainingClass') {
+      selectClause += ', level';
+    }
+    selectClause += ', "createdAt"';
+    
     const result = await pool.query(
-      `SELECT id, name, description, "createdAt" FROM "${tableName}" ORDER BY name ASC`
+      `SELECT ${selectClause} FROM "${tableName}" ORDER BY name ASC`
     );
 
     res.json({
@@ -49,7 +67,7 @@ router.get('/:type', auth, async (req, res) => {
 router.post('/:type', auth, async (req, res) => {
   try {
     const { type } = req.params;
-    const { name, description } = req.body;
+    const { name, description, level } = req.body;
 
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({
@@ -66,12 +84,29 @@ router.post('/:type', auth, async (req, res) => {
     }
 
     const tableName = TABLE_MAPPING[type];
-    const result = await pool.query(
-      `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
-       VALUES ($1, $2, NOW(), NOW()) 
-       RETURNING id, name, description, "createdAt"`,
-      [name.trim(), description || null]
-    );
+    let query = '';
+    let params = [name.trim()];
+    
+    if (tableName === 'Bidang') {
+      // Bidang has description
+      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
+               VALUES ($1, $2, NOW(), NOW()) 
+               RETURNING id, name, description, "createdAt"`;
+      params.push(description || null);
+    } else if (tableName === 'TrainingClass') {
+      // TrainingClass has level, NOT description
+      query = `INSERT INTO "${tableName}" (name, level, "createdAt", "updatedAt") 
+               VALUES ($1, $2, NOW(), NOW()) 
+               RETURNING id, name, level, "createdAt"`;
+      params.push(level || 1);
+    } else {
+      // PersonnelType and DocumentType only have name
+      query = `INSERT INTO "${tableName}" (name, "createdAt", "updatedAt") 
+               VALUES ($1, NOW(), NOW()) 
+               RETURNING id, name, "createdAt"`;
+    }
+    
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
@@ -87,6 +122,15 @@ router.post('/:type', auth, async (req, res) => {
         success: false,
         message: 'Name already exists',
         error: error.message,
+      });
+    }
+    
+    // Check for column not found error (42703) or table not found (42P01)
+    if (error.code === '42703' || error.code === '42P01') {
+      return res.status(400).json({
+        success: false,
+        message: 'Database schema error - table or column does not exist',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
     
