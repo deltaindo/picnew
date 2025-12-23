@@ -3,7 +3,15 @@ const router = express.Router();
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-const VALID_TYPES = ['bidang', 'classes', 'personnel_types', 'document_types'];
+// Map frontend types to actual database table names
+const TABLE_MAPPING = {
+  'bidang': 'bidang',
+  'classes': 'training_classes',
+  'personnel_types': 'personnel_type',
+  'document_types': 'document_type'
+};
+
+const VALID_TYPES = Object.keys(TABLE_MAPPING);
 
 // List master data by type
 router.get('/:type', auth, async (req, res) => {
@@ -17,8 +25,9 @@ router.get('/:type', auth, async (req, res) => {
       });
     }
 
+    const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `SELECT id, name, code, description, created_at FROM ${type} ORDER BY name ASC`
+      `SELECT id, name, description, "createdAt" FROM ${tableName} ORDER BY name ASC`
     );
 
     res.json({
@@ -31,6 +40,7 @@ router.get('/:type', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -39,7 +49,7 @@ router.get('/:type', auth, async (req, res) => {
 router.post('/:type', auth, async (req, res) => {
   try {
     const { type } = req.params;
-    const { name, code, description } = req.body;
+    const { name, description } = req.body;
 
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({
@@ -48,16 +58,19 @@ router.post('/:type', auth, async (req, res) => {
       });
     }
 
-    if (!name) {
+    if (!name || name.trim() === '') {
       return res.status(400).json({
         success: false,
         message: 'Name is required',
       });
     }
 
+    const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `INSERT INTO ${type} (name, code, description, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
-      [name, code || null, description || null]
+      `INSERT INTO ${tableName} (name, description, "createdAt", "updatedAt") 
+       VALUES ($1, $2, NOW(), NOW()) 
+       RETURNING id, name, description, "createdAt"`,
+      [name.trim(), description || null]
     );
 
     res.json({
@@ -67,70 +80,20 @@ router.post('/:type', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Create master data error:', error);
+    
+    // Check for specific database errors
+    if (error.code === '23505') {
+      return res.status(409).json({
+        success: false,
+        message: 'Name already exists',
+        error: error.message,
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error',
-    });
-  }
-});
-
-// Update master data item
-router.put('/:type/:id', auth, async (req, res) => {
-  try {
-    const { type, id } = req.params;
-    const { name, code, description } = req.body;
-
-    if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`,
-      });
-    }
-
-    const updates = [];
-    const values = [id];
-    let paramCount = 2;
-
-    if (name !== undefined) {
-      updates.push(`name = $${paramCount++}`);
-      values.push(name);
-    }
-    if (code !== undefined) {
-      updates.push(`code = $${paramCount++}`);
-      values.push(code);
-    }
-    if (description !== undefined) {
-      updates.push(`description = $${paramCount++}`);
-      values.push(description);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No fields to update',
-      });
-    }
-
-    const query = `UPDATE ${type} SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $1 RETURNING *`;
-    const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found',
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Item updated successfully',
-      data: result.rows[0],
-    });
-  } catch (error) {
-    console.error('Update master data error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -147,9 +110,17 @@ router.delete('/:type/:id', auth, async (req, res) => {
       });
     }
 
+    if (!id || isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID',
+      });
+    }
+
+    const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `DELETE FROM ${type} WHERE id = $1 RETURNING *`,
-      [id]
+      `DELETE FROM ${tableName} WHERE id = $1 RETURNING id, name`,
+      [parseInt(id)]
     );
 
     if (result.rows.length === 0) {
@@ -166,9 +137,19 @@ router.delete('/:type/:id', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete master data error:', error);
+    
+    // Check for foreign key constraint violations
+    if (error.code === '23503') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete item - it is referenced by other records',
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
