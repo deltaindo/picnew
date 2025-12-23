@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
 
 // GET /api/admin/training
 export const getTraining = async (req: Request, res: Response) => {
