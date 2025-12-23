@@ -123,7 +123,20 @@ async function main() {
     ]);
     console.log(`✓ ${personnelTypes.length} Personnel Types created\n`);
 
-    // 5. Create Training Programs
+    // 5. Create Document Types
+    const documentTypes = await Promise.all([
+      prisma.documentType.upsert({ where: { name: 'SURAT PERMOHONAN' }, update: {}, create: { name: 'SURAT PERMOHONAN' } }),
+      prisma.documentType.upsert({ where: { name: 'IJAZAH / DIPLOMA' }, update: {}, create: { name: 'IJAZAH / DIPLOMA' } }),
+      prisma.documentType.upsert({ where: { name: 'KTP / IDENTITAS' }, update: {}, create: { name: 'KTP / IDENTITAS' } }),
+      prisma.documentType.upsert({ where: { name: 'SURAT KETERANGAN' }, update: {}, create: { name: 'SURAT KETERANGAN' } }),
+      prisma.documentType.upsert({ where: { name: 'FOTO' }, update: {}, create: { name: 'FOTO' } }),
+      prisma.documentType.upsert({ where: { name: 'BUKTI KERJA' }, update: {}, create: { name: 'BUKTI KERJA' } }),
+      prisma.documentType.upsert({ where: { name: 'SERTIFIKAT KEAHLIAN' }, update: {}, create: { name: 'SERTIFIKAT KEAHLIAN' } }),
+      prisma.documentType.upsert({ where: { name: 'SURAT REKOMENDASI' }, update: {}, create: { name: 'SURAT REKOMENDASI' } }),
+    ]);
+    console.log(`✓ ${documentTypes.length} Document Types created\n`);
+
+    // 6. Create Training Programs
     const trainingPrograms = await Promise.all([
       prisma.trainingProgram.upsert({
         where: { name: 'AHLI K3 UMUM' },
@@ -153,7 +166,7 @@ async function main() {
     ]);
     console.log(`✓ ${trainingPrograms.length} Training Programs created\n`);
 
-    // 6. Seed Indonesian Regions
+    // 7. Seed Indonesian Regions
     console.log('📍 Seeding Indonesian Regions...');
     console.log('   This will seed all 34 provinces, 514 regencies/cities, 7,277 districts, and 75,574+ villages');
     console.log('   Running: npm run regions:seed\n');
@@ -173,6 +186,14 @@ async function main() {
     }
 
     console.log('\n✅ Database seeded successfully!');
+    console.log('\n📊 Summary:');
+    console.log(`   ✓ Admin User: admin@delta-indonesia.com (Password: Admin123!)`);
+    console.log(`   ✓ ${bidang.length} Bidang (Sectors)`);
+    console.log(`   ✓ ${classes.length} Training Classes`);
+    console.log(`   ✓ ${personnelTypes.length} Personnel Types`);
+    console.log(`   ✓ ${documentTypes.length} Document Types`);
+    console.log(`   ✓ ${trainingPrograms.length} Training Programs`);
+    console.log('\n💡 All seed data is editable in the Master Data admin panel!\n');
   } catch (error) {
     console.error('❌ Seeding error:', error);
     process.exit(1);
