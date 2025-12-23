@@ -3,12 +3,12 @@ const router = express.Router();
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-// Map frontend types to actual database table names
+// Map frontend types to actual database table names (PascalCase)
 const TABLE_MAPPING = {
-  'bidang': 'bidang',
-  'classes': 'training_classes',
-  'personnel_types': 'personnel_type',
-  'document_types': 'document_type'
+  'bidang': 'Bidang',
+  'classes': 'TrainingClass',
+  'personnel_types': 'PersonnelType',
+  'document_types': 'DocumentType'
 };
 
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
@@ -27,7 +27,7 @@ router.get('/:type', auth, async (req, res) => {
 
     const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `SELECT id, name, description, "createdAt" FROM ${tableName} ORDER BY name ASC`
+      `SELECT id, name, description, "createdAt" FROM "${tableName}" ORDER BY name ASC`
     );
 
     res.json({
@@ -67,7 +67,7 @@ router.post('/:type', auth, async (req, res) => {
 
     const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `INSERT INTO ${tableName} (name, description, "createdAt", "updatedAt") 
+      `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
        VALUES ($1, $2, NOW(), NOW()) 
        RETURNING id, name, description, "createdAt"`,
       [name.trim(), description || null]
@@ -119,7 +119,7 @@ router.delete('/:type/:id', auth, async (req, res) => {
 
     const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `DELETE FROM ${tableName} WHERE id = $1 RETURNING id, name`,
+      `DELETE FROM "${tableName}" WHERE id = $1 RETURNING id, name`,
       [parseInt(id)]
     );
 
