@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
-type TabType = 'bidang' | 'class' | 'personnel' | 'documents';
+type TabType = 'bidang' | 'classes' | 'personnel_types' | 'document_types';
 
 interface MasterDataItem {
   id: string;
@@ -27,9 +27,9 @@ export default function MasterDataPage() {
 
   const tabs = [
     { id: 'bidang', label: 'Bidang/Sektor', icon: '🏢' },
-    { id: 'class', label: 'Kelas', icon: '📚' },
-    { id: 'personnel', label: 'Jenis Personel', icon: '👔' },
-    { id: 'documents', label: 'Tipe Dokumen', icon: '📄' },
+    { id: 'classes', label: 'Kelas', icon: '📚' },
+    { id: 'personnel_types', label: 'Jenis Personel', icon: '👔' },
+    { id: 'document_types', label: 'Tipe Dokumen', icon: '📄' },
   ] as const;
 
   useEffect(() => {
@@ -245,7 +245,7 @@ export default function MasterDataPage() {
                   />
                 </div>
 
-                {(activeTab === 'bidang' || activeTab === 'documents') && (
+                {(activeTab === 'bidang' || activeTab === 'document_types') && (
                   <div>
                     <label className="block text-white text-sm font-medium mb-2">Kode</label>
                     <input
