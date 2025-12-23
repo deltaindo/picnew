@@ -23,6 +23,8 @@ model User {
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
+
+  @@map("users")
 }
 
 // ==================== INDONESIAN REGIONS ====================
