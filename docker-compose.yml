@@ -16,7 +16,8 @@ services:
       # AUTO-LOAD SCHEMA AND SEEDER ON STARTUP
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./backend/database/constraints.sql:/docker-entrypoint-initdb.d/02-constraints.sql
-      - ./backend/database/2026-training-seeder-FINAL.sql:/docker-entrypoint-initdb.d/03-seeder.sql
+      - ./backend/database/admin-seeder.sql:/docker-entrypoint-initdb.d/03-admin-seeder.sql
+      - ./backend/database/2026-training-seeder-FINAL.sql:/docker-entrypoint-initdb.d/04-seeder.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
