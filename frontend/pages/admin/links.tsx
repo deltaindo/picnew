@@ -22,11 +22,6 @@ interface RegistrationLink {
   created_at: string;
 }
 
-interface Training {
-  id: string;
-  name: string;
-}
-
 interface Bidang {
   id: string;
   name: string;
@@ -45,14 +40,12 @@ interface TrainingProgram {
 }
 
 interface MasterDataLoadingState {
-  trainings: boolean;
   bidangs: boolean;
   kelas: boolean;
   programs: boolean;
 }
 
 interface MasterDataError {
-  trainings: string | null;
   bidangs: string | null;
   kelas: string | null;
   programs: string | null;
@@ -61,7 +54,6 @@ interface MasterDataError {
 export default function LinksPage() {
   const router = useRouter();
   const [links, setLinks] = useState<RegistrationLink[]>([]);
-  const [trainings, setTrainings] = useState<Training[]>([]);
   const [bidangs, setBidangs] = useState<Bidang[]>([]);
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
@@ -72,13 +64,11 @@ export default function LinksPage() {
   
   // New state for better loading/error management
   const [masterDataLoading, setMasterDataLoading] = useState<MasterDataLoadingState>({
-    trainings: false,
     bidangs: false,
     kelas: false,
     programs: false,
   });
   const [masterDataError, setMasterDataError] = useState<MasterDataError>({
-    trainings: null,
     bidangs: null,
     kelas: null,
     programs: null,
@@ -90,7 +80,6 @@ export default function LinksPage() {
     class_id: '',
     start_date: '',
     end_date: '',
-    program: '',
     whatsapp_link: '',
     location: '',
   });
@@ -128,24 +117,6 @@ export default function LinksPage() {
       const token = localStorage.getItem('token');
       console.log('Fetching master data...');
 
-      // Fetch trainings
-      try {
-        setMasterDataLoading(prev => ({ ...prev, trainings: true }));
-        setMasterDataError(prev => ({ ...prev, trainings: null }));
-        const trainingsRes = await axios.get(`${API_BASE_URL}/api/admin/training`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Trainings response:', trainingsRes.data);
-        setTrainings(trainingsRes.data.data || []);
-      } catch (error: any) {
-        console.error('Failed to fetch trainings:', error);
-        const errorMsg = error.response?.data?.message || error.message || 'Failed to load training data';
-        setMasterDataError(prev => ({ ...prev, trainings: errorMsg }));
-        setTrainings([]);
-      } finally {
-        setMasterDataLoading(prev => ({ ...prev, trainings: false }));
-      }
-
       // Fetch bidangs
       try {
         setMasterDataLoading(prev => ({ ...prev, bidangs: true }));
@@ -164,7 +135,7 @@ export default function LinksPage() {
         setMasterDataLoading(prev => ({ ...prev, bidangs: false }));
       }
 
-      // Fetch kelas - FIXED: Changed from 'class' to 'classes'
+      // Fetch kelas
       try {
         setMasterDataLoading(prev => ({ ...prev, kelas: true }));
         setMasterDataError(prev => ({ ...prev, kelas: null }));
@@ -182,7 +153,7 @@ export default function LinksPage() {
         setMasterDataLoading(prev => ({ ...prev, kelas: false }));
       }
 
-      // Fetch programs - NEW: Dynamically fetch from API
+      // Fetch programs (Training)
       try {
         setMasterDataLoading(prev => ({ ...prev, programs: true }));
         setMasterDataError(prev => ({ ...prev, programs: null }));
@@ -213,7 +184,7 @@ export default function LinksPage() {
       return;
     }
 
-    // Validate selected training exists - FIXED: Check in programs array instead of trainings
+    // Validate selected training exists in programs
     const selectedTraining = programs.find(p => p.id === formData.training_id);
     if (!selectedTraining) {
       alert('❌ Training yang dipilih tidak valid');
@@ -229,7 +200,6 @@ export default function LinksPage() {
         training_id: formData.training_id,
         bidang_id: formData.bidang_id || undefined,
         class_level: formData.class_id || undefined,
-        program: formData.program || undefined,
         location: formData.location || undefined,
         start_date: formData.start_date || undefined,
         end_date: formData.end_date || undefined,
@@ -257,7 +227,6 @@ export default function LinksPage() {
         class_id: '',
         start_date: '',
         end_date: '',
-        program: '',
         whatsapp_link: '',
         location: '',
       });
@@ -295,7 +264,7 @@ export default function LinksPage() {
   const handleOpenCreateModal = () => {
     console.log('Opening create modal');
     // Reset errors when opening modal
-    setMasterDataError({ trainings: null, bidangs: null, kelas: null, programs: null });
+    setMasterDataError({ bidangs: null, kelas: null, programs: null });
     setShowCreateModal(true);
   };
 
@@ -456,7 +425,7 @@ export default function LinksPage() {
                   </select>
                 </div>
 
-                {/* Training - RENAMED FROM PROGRAM */}
+                {/* Training */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
                     Training * {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
