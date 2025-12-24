@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
-type TabType = 'bidang' | 'classes' | 'personnel_types' | 'document_types';
+type TabType = 'bidang' | 'classes' | 'training' | 'training_programs' | 'personnel_types' | 'document_types';
 
 interface MasterDataItem {
   id: string;
@@ -29,6 +29,8 @@ export default function MasterDataPage() {
   const tabs = [
     { id: 'bidang', label: 'Bidang/Sektor', icon: '🏢' },
     { id: 'classes', label: 'Kelas', icon: '📚' },
+    { id: 'training', label: 'Training', icon: '🎓' },
+    { id: 'training_programs', label: 'Program', icon: '📋' },
     { id: 'personnel_types', label: 'Jenis Personel', icon: '👔' },
     { id: 'document_types', label: 'Tipe Dokumen', icon: '📄' },
   ] as const;
@@ -72,12 +74,16 @@ export default function MasterDataPage() {
       let payload: any = { name: formData.name };
       
       // Only add fields that exist for each tab
-      if (activeTab === 'bidang' || activeTab === 'document_types') {
+      if (activeTab === 'bidang' || activeTab === 'document_types' || activeTab === 'training_programs') {
         if (formData.code) payload.code = formData.code;
         if (formData.description) payload.description = formData.description;
       } else if (activeTab === 'classes') {
         if (formData.level) payload.level = Number(formData.level);
         // Note: classes don't have description field in database
+      } else if (activeTab === 'training') {
+        if (formData.description) payload.description = formData.description;
+        // Training has additional fields: start_date, end_date, location, max_participants, etc.
+        // For now, just name and description - full training creation via Training page
       }
 
       await axios.post(`${API_BASE_URL}/api/admin/master-data/${activeTab}`, payload, {
@@ -285,6 +291,37 @@ export default function MasterDataPage() {
                 )}
 
                 {(activeTab === 'bidang' || activeTab === 'document_types') && (
+                  <div>
+                    <label className="block text-white text-sm font-medium mb-2">Deskripsi</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                      rows={3}
+                      placeholder="Optional"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'training' && (
+                  <>
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Deskripsi</label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-4 py-2 rounded bg-[#1a2332] border border-[#2d3e52] text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                        rows={3}
+                        placeholder="Deskripsi training"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <p className="text-[#8fa3b8] text-xs mt-2">💡 Fitur lengkap training tersedia di halaman Training</p>
+                  </>
+                )}
+
+                {activeTab === 'training_programs' && (
                   <div>
                     <label className="block text-white text-sm font-medium mb-2">Deskripsi</label>
                     <textarea
