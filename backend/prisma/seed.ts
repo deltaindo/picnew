@@ -107,6 +107,88 @@ async function main() {
     console.log('✅ Document Type created:', created.name);
   }
 
+  // 6. Create training programs
+  const trainingProgramsList = [
+    {
+      name: 'Inhouse',
+      description: 'Pelatihan internal khusus untuk karyawan perusahaan',
+    },
+    {
+      name: 'Reguler',
+      description: 'Pelatihan terbuka untuk umum sesuai jadwal reguler',
+    },
+    {
+      name: 'Mitra PJK3',
+      description: 'Pelatihan kerjasama dengan mitra PJK3',
+    },
+  ];
+
+  for (const program of trainingProgramsList) {
+    const created = await prisma.trainingProgram.upsert({
+      where: { name: program.name },
+      update: {},
+      create: program,
+    });
+    console.log('✅ Training Program created:', created.name);
+  }
+
+  // 7. Create sample trainings
+  const trainingsList = [
+    {
+      name: 'K3 Listrik Level 1',
+      description: 'Pelatihan Keselamatan dan Kesehatan Kerja Kelistrikan Tingkat Dasar',
+      start_date: new Date('2025-01-15'),
+      end_date: new Date('2025-01-20'),
+      location: 'Jakarta Training Center',
+      duration_days: 5,
+      max_participants: 30,
+      instructor: 'Ir. Budi Santoso',
+      status: 'scheduled',
+    },
+    {
+      name: 'K3 Umum Level 2',
+      description: 'Pelatihan Keselamatan dan Kesehatan Kerja Umum Tingkat Menengah',
+      start_date: new Date('2025-02-10'),
+      end_date: new Date('2025-02-15'),
+      location: 'Surabaya Training Center',
+      duration_days: 5,
+      max_participants: 25,
+      instructor: 'Ir. Siti Nurhaliza',
+      status: 'scheduled',
+    },
+    {
+      name: 'Operator Pengangkat Level 1',
+      description: 'Pelatihan Operator Mesin Pengangkat dan Pemindah Beban',
+      start_date: new Date('2025-03-01'),
+      end_date: new Date('2025-03-05'),
+      location: 'Medan Training Center',
+      duration_days: 4,
+      max_participants: 20,
+      instructor: 'Ir. Hendra Wijaya',
+      status: 'scheduled',
+    },
+    {
+      name: 'K3 Listrik Level 3 (Ahli)',
+      description: 'Pelatihan Keselamatan dan Kesehatan Kerja Kelistrikan Tingkat Ahli',
+      start_date: new Date('2025-04-01'),
+      end_date: new Date('2025-04-10'),
+      location: 'Bandung Training Center',
+      duration_days: 9,
+      max_participants: 15,
+      instructor: 'Dr. Ir. Bambang Setiawan',
+      status: 'scheduled',
+    },
+  ];
+
+  for (const training of trainingsList) {
+    const created = await prisma.training.upsert({
+      where: { name: training.name },
+      update: {},
+      create: training,
+    });
+    console.log('✅ Training created:', created.name);
+  }
+
   console.log('\n🎉 Database seeding completed successfully!');
   console.log('\n📝 Test Login Credentials:');
   console.log('   Email: admin@deltaindo.com');
