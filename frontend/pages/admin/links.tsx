@@ -433,33 +433,6 @@ export default function LinksPage() {
                   </select>
                 </div>
 
-                {/* Training */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Training * {masterDataLoading.trainings && <span className="text-xs text-gray-500">(loading...)</span>}
-                  </label>
-                  {masterDataError.trainings && (
-                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.trainings}</p>
-                  )}
-                  <select
-                    value={formData.training_id}
-                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
-                    required
-                    disabled={isSubmitting || masterDataLoading.trainings}
-                  >
-                    <option value="">-- Pilih Training --</option>
-                    {trainings.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  {trainings.length === 0 && !masterDataLoading.trainings && !masterDataError.trainings && (
-                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada training tersedia. Buat training di halaman Training terlebih dahulu.</p>
-                  )}
-                </div>
-
                 {/* Kelas */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -481,6 +454,33 @@ export default function LinksPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Training - RENAMED FROM PROGRAM */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Training * {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
+                  </label>
+                  {masterDataError.programs && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.programs}</p>
+                  )}
+                  <select
+                    value={formData.training_id}
+                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    required
+                    disabled={isSubmitting || masterDataLoading.programs}
+                  >
+                    <option value="">-- Pilih Training --</option>
+                    {programs.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {programs.length === 0 && !masterDataLoading.programs && !masterDataError.programs && (
+                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada training tersedia. Buat training di halaman Master Data terlebih dahulu.</p>
+                  )}
                 </div>
 
                 {/* Tanggal Mulai Training & Tanggal Selesai (side by side) */}
@@ -505,32 +505,6 @@ export default function LinksPage() {
                       disabled={isSubmitting}
                     />
                   </div>
-                </div>
-
-                {/* Program - NOW DYNAMIC */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Program {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
-                  </label>
-                  {masterDataError.programs && (
-                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.programs}</p>
-                  )}
-                  <select
-                    value={formData.program}
-                    onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
-                    disabled={isSubmitting || masterDataLoading.programs}
-                  >
-                    <option value="">-- Pilih Program --</option>
-                    {programs.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                  {programs.length === 0 && !masterDataLoading.programs && !masterDataError.programs && (
-                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada program tersedia. Buat program di halaman Master Data terlebih dahulu.</p>
-                  )}
                 </div>
 
                 {/* Link Grup Whatsapp */}
