@@ -38,6 +38,18 @@ interface Kelas {
   name: string;
 }
 
+interface MasterDataLoadingState {
+  trainings: boolean;
+  bidangs: boolean;
+  kelas: boolean;
+}
+
+interface MasterDataError {
+  trainings: string | null;
+  bidangs: string | null;
+  kelas: string | null;
+}
+
 export default function LinksPage() {
   const router = useRouter();
   const [links, setLinks] = useState<RegistrationLink[]>([]);
@@ -48,6 +60,19 @@ export default function LinksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // New state for better loading/error management
+  const [masterDataLoading, setMasterDataLoading] = useState<MasterDataLoadingState>({
+    trainings: false,
+    bidangs: false,
+    kelas: false,
+  });
+  const [masterDataError, setMasterDataError] = useState<MasterDataError>({
+    trainings: null,
+    bidangs: null,
+    kelas: null,
+  });
+
   const [formData, setFormData] = useState({
     bidang_id: '',
     training_id: '',
@@ -91,67 +116,112 @@ export default function LinksPage() {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching master data...');
-      
-      // Fetch all master data in parallel
-      const [trainingsRes, bidangsRes, kelasRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/admin/training`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_BASE_URL}/api/admin/master-data/bidang`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_BASE_URL}/api/admin/master-data/class`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
 
-      console.log('Master data responses:', {
-        trainings: trainingsRes.data,
-        bidangs: bidangsRes.data,
-        kelas: kelasRes.data,
-      });
+      // Fetch trainings
+      try {
+        setMasterDataLoading(prev => ({ ...prev, trainings: true }));
+        setMasterDataError(prev => ({ ...prev, trainings: null }));
+        const trainingsRes = await axios.get(`${API_BASE_URL}/api/admin/training`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Trainings response:', trainingsRes.data);
+        setTrainings(trainingsRes.data.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch trainings:', error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to load training data';
+        setMasterDataError(prev => ({ ...prev, trainings: errorMsg }));
+        setTrainings([]);
+      } finally {
+        setMasterDataLoading(prev => ({ ...prev, trainings: false }));
+      }
 
-      setTrainings(trainingsRes.data.data || []);
-      setBidangs(bidangsRes.data.data || []);
-      setKelas(kelasRes.data.data || []);
+      // Fetch bidangs
+      try {
+        setMasterDataLoading(prev => ({ ...prev, bidangs: true }));
+        setMasterDataError(prev => ({ ...prev, bidangs: null }));
+        const bidangsRes = await axios.get(`${API_BASE_URL}/api/admin/master-data/bidang`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Bidangs response:', bidangsRes.data);
+        setBidangs(bidangsRes.data.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch bidangs:', error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to load bidang data';
+        setMasterDataError(prev => ({ ...prev, bidangs: errorMsg }));
+        setBidangs([]);
+      } finally {
+        setMasterDataLoading(prev => ({ ...prev, bidangs: false }));
+      }
+
+      // Fetch kelas
+      try {
+        setMasterDataLoading(prev => ({ ...prev, kelas: true }));
+        setMasterDataError(prev => ({ ...prev, kelas: null }));
+        const kelasRes = await axios.get(`${API_BASE_URL}/api/admin/master-data/class`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Kelas response:', kelasRes.data);
+        setKelas(kelasRes.data.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch kelas:', error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to load kelas data';
+        setMasterDataError(prev => ({ ...prev, kelas: errorMsg }));
+        setKelas([]);
+      } finally {
+        setMasterDataLoading(prev => ({ ...prev, kelas: false }));
+      }
     } catch (error) {
-      console.error('Failed to fetch master data:', error);
+      console.error('Unexpected error in fetchMasterData:', error);
     }
   };
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Validation
     if (!formData.training_id) {
-      alert('Pilih training terlebih dahulu');
+      alert('❌ Pilih training terlebih dahulu');
+      return;
+    }
+
+    // Validate selected training exists
+    const selectedTraining = trainings.find(t => t.id === formData.training_id);
+    if (!selectedTraining) {
+      alert('❌ Training yang dipilih tidak valid');
       return;
     }
 
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
-      
+
       // Build payload matching backend expectations
       const payload = {
         training_id: formData.training_id,
-        class_level: formData.class_id || null,
-        program: formData.program || null,
-        location: formData.location || null,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
-        whatsapp_link: formData.whatsapp_link || null,
+        bidang_id: formData.bidang_id || undefined, // Include if selected
+        class_level: formData.class_id || undefined,
+        program: formData.program || undefined,
+        location: formData.location || undefined,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
+        whatsapp_link: formData.whatsapp_link || undefined,
         max_registrations: 25,
       };
 
+      // Remove undefined values
+      Object.keys(payload).forEach(
+        key => (payload as any)[key] === undefined && delete (payload as any)[key]
+      );
+
       console.log('Creating link with payload:', payload);
       console.log('API URL:', `${API_BASE_URL}/api/admin/links`);
-      
+
       const response = await axios.post(`${API_BASE_URL}/api/admin/links`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       console.log('Create response:', response.data);
-      
+
       setFormData({
         bidang_id: '',
         training_id: '',
@@ -193,6 +263,13 @@ export default function LinksPage() {
     alert('✅ Link copied to clipboard!');
   };
 
+  const handleOpenCreateModal = () => {
+    console.log('Opening create modal');
+    // Reset errors when opening modal
+    setMasterDataError({ trainings: null, bidangs: null, kelas: null });
+    setShowCreateModal(true);
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -216,10 +293,7 @@ export default function LinksPage() {
             <p className="text-[#8fa3b8] mt-1">Kelola tautan pendaftaran peserta pelatihan</p>
           </div>
           <button
-            onClick={() => {
-              console.log('Opening create modal');
-              setShowCreateModal(true);
-            }}
+            onClick={handleOpenCreateModal}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all inline-flex items-center gap-2 w-fit"
           >
             ➕ Buat Link Baru
@@ -309,12 +383,17 @@ export default function LinksPage() {
               <form onSubmit={handleCreateLink} className="space-y-4">
                 {/* Bidang */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Bidang</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Bidang {masterDataLoading.bidangs && <span className="text-xs text-gray-500">(loading...)</span>}
+                  </label>
+                  {masterDataError.bidangs && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.bidangs}</p>
+                  )}
                   <select
                     value={formData.bidang_id}
                     onChange={(e) => setFormData({ ...formData, bidang_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
-                    disabled={isSubmitting}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    disabled={isSubmitting || masterDataLoading.bidangs}
                   >
                     <option value="">-- Pilih Bidang --</option>
                     {bidangs.map((b) => (
@@ -327,13 +406,18 @@ export default function LinksPage() {
 
                 {/* Training */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Training</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Training * {masterDataLoading.trainings && <span className="text-xs text-gray-500">(loading...)</span>}
+                  </label>
+                  {masterDataError.trainings && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.trainings}</p>
+                  )}
                   <select
                     value={formData.training_id}
                     onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
                     required
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || masterDataLoading.trainings}
                   >
                     <option value="">-- Pilih Training --</option>
                     {trainings.map((t) => (
@@ -342,19 +426,24 @@ export default function LinksPage() {
                       </option>
                     ))}
                   </select>
-                  {trainings.length === 0 && (
-                    <p className="text-red-500 text-xs mt-1">⚠️ Tidak ada training tersedia</p>
+                  {trainings.length === 0 && !masterDataLoading.trainings && !masterDataError.trainings && (
+                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada training tersedia. Buat training di halaman Training terlebih dahulu.</p>
                   )}
                 </div>
 
                 {/* Kelas */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Kelas</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Kelas {masterDataLoading.kelas && <span className="text-xs text-gray-500">(loading...)</span>}
+                  </label>
+                  {masterDataError.kelas && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.kelas}</p>
+                  )}
                   <select
                     value={formData.class_id}
                     onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
-                    disabled={isSubmitting}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    disabled={isSubmitting || masterDataLoading.kelas}
                   >
                     <option value="">-- Pilih Kelas --</option>
                     {kelas.map((k) => (
@@ -373,7 +462,7 @@ export default function LinksPage() {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                       disabled={isSubmitting}
                     />
                   </div>
@@ -383,7 +472,7 @@ export default function LinksPage() {
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                       disabled={isSubmitting}
                     />
                   </div>
@@ -395,7 +484,7 @@ export default function LinksPage() {
                   <select
                     value={formData.program}
                     onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
                     disabled={isSubmitting}
                   >
                     <option value="">-- Pilih Program --</option>
@@ -410,7 +499,7 @@ export default function LinksPage() {
                     type="url"
                     value={formData.whatsapp_link}
                     onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                     placeholder="https://chat.whatsapp.com/..."
                     disabled={isSubmitting}
                   />
@@ -423,7 +512,7 @@ export default function LinksPage() {
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                     placeholder="e.g., Bekasi Training Center"
                     disabled={isSubmitting}
                   />
@@ -442,7 +531,7 @@ export default function LinksPage() {
                   <button
                     type="submit"
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !formData.training_id}
                   >
                     {isSubmitting ? '⏳ Membuat...' : '✅ Buat'}
                   </button>
