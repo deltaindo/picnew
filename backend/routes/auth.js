@@ -42,9 +42,9 @@ router.post('/login', validateLogin, handleValidationErrors, async (req, res, ne
       { expiresIn: '24h' }
     );
 
-    // Update last_login
+    // Update lastLogin (camelCase - matches database column name)
     await pool.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      'UPDATE users SET "lastLogin" = NOW() WHERE id = $1',
       [user.id]
     );
 
@@ -100,10 +100,10 @@ router.post('/init-admin', validateInitAdmin, handleValidationErrors, async (req
 
     // Create superadmin user
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, role, status, created_at, last_login) 
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
+      `INSERT INTO users (name, email, password, role, "lastLogin") 
+       VALUES ($1, $2, $3, $4, NOW()) 
        RETURNING id, name, email, role`,
-      [name || 'Superadmin', email, hashedPassword, 'superadmin', 'active']
+      [name || 'Superadmin', email, hashedPassword, 'super_admin']
     );
 
     const user = result.rows[0];
@@ -141,7 +141,7 @@ router.get('/status', async (req, res, next) => {
 
     const superadminResult = await pool.query(
       'SELECT id, name, email, role FROM users WHERE role = $1 LIMIT 1',
-      ['superadmin']
+      ['super_admin']
     );
 
     res.json({
