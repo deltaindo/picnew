@@ -29,7 +29,7 @@ export default function MasterDataPage() {
   const tabs = [
     { id: 'bidang', label: 'Bidang/Sektor', icon: '🏢' },
     { id: 'classes', label: 'Kelas', icon: '📚' },
-    { id: 'training_programs', label: 'Program', icon: '📋' },
+    { id: 'training_programs', label: 'Training', icon: '🎓' },
     { id: 'personnel_types', label: 'Jenis Personel', icon: '👔' },
     { id: 'document_types', label: 'Tipe Dokumen', icon: '📄' },
   ] as const;
