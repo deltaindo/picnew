@@ -213,8 +213,8 @@ export default function LinksPage() {
       return;
     }
 
-    // Validate selected training exists
-    const selectedTraining = trainings.find(t => t.id === formData.training_id);
+    // Validate selected training exists - FIXED: Check in programs array instead of trainings
+    const selectedTraining = programs.find(p => p.id === formData.training_id);
     if (!selectedTraining) {
       alert('❌ Training yang dipilih tidak valid');
       return;
