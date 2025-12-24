@@ -38,16 +38,24 @@ interface Kelas {
   name: string;
 }
 
+interface TrainingProgram {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface MasterDataLoadingState {
   trainings: boolean;
   bidangs: boolean;
   kelas: boolean;
+  programs: boolean;
 }
 
 interface MasterDataError {
   trainings: string | null;
   bidangs: string | null;
   kelas: string | null;
+  programs: string | null;
 }
 
 export default function LinksPage() {
@@ -56,6 +64,7 @@ export default function LinksPage() {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [bidangs, setBidangs] = useState<Bidang[]>([]);
   const [kelas, setKelas] = useState<Kelas[]>([]);
+  const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(null);
@@ -66,11 +75,13 @@ export default function LinksPage() {
     trainings: false,
     bidangs: false,
     kelas: false,
+    programs: false,
   });
   const [masterDataError, setMasterDataError] = useState<MasterDataError>({
     trainings: null,
     bidangs: null,
     kelas: null,
+    programs: null,
   });
 
   const [formData, setFormData] = useState({
@@ -153,11 +164,11 @@ export default function LinksPage() {
         setMasterDataLoading(prev => ({ ...prev, bidangs: false }));
       }
 
-      // Fetch kelas
+      // Fetch kelas - FIXED: Changed from 'class' to 'classes'
       try {
         setMasterDataLoading(prev => ({ ...prev, kelas: true }));
         setMasterDataError(prev => ({ ...prev, kelas: null }));
-        const kelasRes = await axios.get(`${API_BASE_URL}/api/admin/master-data/class`, {
+        const kelasRes = await axios.get(`${API_BASE_URL}/api/admin/master-data/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Kelas response:', kelasRes.data);
@@ -169,6 +180,24 @@ export default function LinksPage() {
         setKelas([]);
       } finally {
         setMasterDataLoading(prev => ({ ...prev, kelas: false }));
+      }
+
+      // Fetch programs - NEW: Dynamically fetch from API
+      try {
+        setMasterDataLoading(prev => ({ ...prev, programs: true }));
+        setMasterDataError(prev => ({ ...prev, programs: null }));
+        const programsRes = await axios.get(`${API_BASE_URL}/api/admin/master-data/training_programs`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Programs response:', programsRes.data);
+        setPrograms(programsRes.data.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch programs:', error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to load program data';
+        setMasterDataError(prev => ({ ...prev, programs: errorMsg }));
+        setPrograms([]);
+      } finally {
+        setMasterDataLoading(prev => ({ ...prev, programs: false }));
       }
     } catch (error) {
       console.error('Unexpected error in fetchMasterData:', error);
@@ -198,7 +227,7 @@ export default function LinksPage() {
       // Build payload matching backend expectations
       const payload = {
         training_id: formData.training_id,
-        bidang_id: formData.bidang_id || undefined, // Include if selected
+        bidang_id: formData.bidang_id || undefined,
         class_level: formData.class_id || undefined,
         program: formData.program || undefined,
         location: formData.location || undefined,
@@ -266,7 +295,7 @@ export default function LinksPage() {
   const handleOpenCreateModal = () => {
     console.log('Opening create modal');
     // Reset errors when opening modal
-    setMasterDataError({ trainings: null, bidangs: null, kelas: null });
+    setMasterDataError({ trainings: null, bidangs: null, kelas: null, programs: null });
     setShowCreateModal(true);
   };
 
@@ -478,18 +507,30 @@ export default function LinksPage() {
                   </div>
                 </div>
 
-                {/* Program */}
+                {/* Program - NOW DYNAMIC */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Program</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Program {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
+                  </label>
+                  {masterDataError.programs && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.programs}</p>
+                  )}
                   <select
                     value={formData.program}
                     onChange={(e) => setFormData({ ...formData, program: e.target.value })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || masterDataLoading.programs}
                   >
                     <option value="">-- Pilih Program --</option>
-                    <option value="Inhouse">Inhouse / Reguler / Mitra PJK3</option>
+                    {programs.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
                   </select>
+                  {programs.length === 0 && !masterDataLoading.programs && !masterDataError.programs && (
+                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada program tersedia. Buat program di halaman Master Data terlebih dahulu.</p>
+                  )}
                 </div>
 
                 {/* Link Grup Whatsapp */}
