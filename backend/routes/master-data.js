@@ -7,6 +7,7 @@ const auth = require('../middleware/auth');
 const TABLE_MAPPING = {
   'bidang': 'Bidang',
   'classes': 'TrainingClass',
+  'training_programs': 'TrainingProgram',
   'personnel_types': 'PersonnelType',
   'document_types': 'DocumentType'
 };
@@ -15,6 +16,7 @@ const TABLE_MAPPING = {
 const COLUMN_MAPPING = {
   'Bidang': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
   'TrainingClass': ['id', 'name', 'level', 'createdAt', 'updatedAt'],  // NO description!
+  'TrainingProgram': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
   'PersonnelType': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
   'DocumentType': ['id', 'name', 'createdAt', 'updatedAt']  // NO description, NO level!
 };
@@ -41,6 +43,8 @@ router.get('/:type', auth, async (req, res) => {
       selectClause += ', description';
     } else if (tableName === 'TrainingClass') {
       selectClause += ', level';
+    } else if (tableName === 'TrainingProgram') {
+      selectClause += ', description';
     }
     selectClause += ', "createdAt"';
     
@@ -99,6 +103,12 @@ router.post('/:type', auth, async (req, res) => {
                VALUES ($1, $2, NOW(), NOW()) 
                RETURNING id, name, level, "createdAt"`;
       params.push(level || 1);
+    } else if (tableName === 'TrainingProgram') {
+      // TrainingProgram has description
+      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
+               VALUES ($1, $2, NOW(), NOW()) 
+               RETURNING id, name, description, "createdAt"`;
+      params.push(description || null);
     } else {
       // PersonnelType and DocumentType only have name
       query = `INSERT INTO "${tableName}" (name, "createdAt", "updatedAt") 
