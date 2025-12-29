@@ -1,237 +1,594 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const pool = require('../db');
+const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
 
-// Generate unique token (auto link generator)
-function generateToken() {
-  return uuidv4().replace(/-/g, '').substring(0, 12).toUpperCase();
-}
+const prisma = new PrismaClient();
 
-// Generate unique link with token
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Generate registration link from token
+ */
 function generateLink(token) {
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   return `${baseUrl}/register/${token}`;
 }
 
-// List all registration links
+/**
+ * Generate QR code URL
+ */
+function generateQRCode(link) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+}
+
+/**
+ * Format link response with additional data
+ */
+function formatLinkResponse(link) {
+  const shareUrl = generateLink(link.uniqueToken);
+  return {
+    ...link,
+    share_url: shareUrl,
+    qr_code_url: generateQRCode(shareUrl)
+  };
+}
+
+// ==================== ROUTES ====================
+
+/**
+ * GET /api/admin/links
+ * Get all registration links with related data
+ */
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT 
-        id, token, training_id, 
-        (SELECT name FROM trainings WHERE id = registration_links.training_id) as training_name,
-        class_level, personnel_type, max_registrations, current_registrations,
-        expiry_date, whatsapp_link, status, created_at
-       FROM registration_links 
-       ORDER BY created_at DESC`
-    );
+    const links = await prisma.registrationLink.findMany({
+      include: {
+        trainingProgram: {
+          select: {
+            id: true,
+            name: true,
+            durationDays: true,
+            bidangId: true
+          }
+        },
+        trainingClass: {
+          select: {
+            id: true,
+            name: true,
+            level: true
+          }
+        },
+        personnelType: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        createdByAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        _count: {
+          select: { registrations: true }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Format response with share URLs
+    const formattedLinks = links.map(formatLinkResponse);
 
     res.json({
       success: true,
       message: 'Links fetched successfully',
-      data: result.rows,
+      data: formattedLinks,
+      total: links.length
     });
   } catch (error) {
     console.error('Fetch links error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Failed to fetch links',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Get single link
+/**
+ * GET /api/admin/links/:id
+ * Get single link by ID or token
+ */
 router.get('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
+    const linkId = parseInt(id);
 
-    const result = await pool.query(
-      'SELECT * FROM registration_links WHERE id = $1 OR token = $1',
-      [id]
-    );
+    // Try to find by ID first, then by token
+    let link = await prisma.registrationLink.findFirst({
+      where: {
+        OR: [
+          { id: isNaN(linkId) ? undefined : linkId },
+          { uniqueToken: id }
+        ]
+      },
+      include: {
+        trainingProgram: true,
+        trainingClass: true,
+        personnelType: true,
+        createdByAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        registrations: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            submissionStatus: true,
+            submittedAt: true
+          }
+        }
+      }
+    });
 
-    if (result.rows.length === 0) {
+    if (!link) {
       return res.status(404).json({
         success: false,
-        message: 'Link not found',
+        message: 'Link not found'
       });
     }
 
-    const link = result.rows[0];
-    link.share_url = generateLink(link.token);
-
     res.json({
       success: true,
-      data: link,
+      data: formatLinkResponse(link)
     });
   } catch (error) {
     console.error('Fetch link error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Failed to fetch link',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Create registration link (AUTO GENERATOR)
+/**
+ * POST /api/admin/links
+ * Create new registration link
+ * 
+ * Required fields in request body:
+ * - trainingProgramId (integer)
+ * - trainingClassId (integer)
+ * - personnelTypeId (integer)
+ * - maxRegistrations (integer)
+ * - expiryDate (ISO datetime string)
+ * 
+ * Optional fields:
+ * - waGroupLink (string)
+ * - requiredDocuments (array of objects)
+ */
 router.post('/', auth, async (req, res) => {
   try {
-    const {
-      training_id,
-      class_level,
-      personnel_type,
-      max_registrations = 25,
-      expiry_date,
-      whatsapp_link,
-      required_documents = [],
-    } = req.body;
-
-    if (!training_id) {
-      return res.status(400).json({
+    // Get user ID from auth middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: 'training_id is required',
+        message: 'User not authenticated'
       });
     }
 
-    // Generate unique token automatically
-    const token = generateToken();
-    const shareUrl = generateLink(token);
+    const {
+      trainingProgramId,
+      trainingClassId,
+      personnelTypeId,
+      maxRegistrations = 25,
+      expiryDate,
+      waGroupLink,
+      requiredDocuments = []
+    } = req.body;
 
-    const result = await pool.query(
-      `INSERT INTO registration_links 
-       (token, training_id, class_level, personnel_type, max_registrations, current_registrations, expiry_date, whatsapp_link, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, 0, $6, $7, 'active', NOW())
-       RETURNING *`,
-      [
-        token,
-        training_id,
-        class_level || null,
-        personnel_type || null,
-        max_registrations,
-        expiry_date || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // Default: 90 days
-        whatsapp_link || null,
-      ]
-    );
+    // ==================== VALIDATION ====================
 
-    const link = result.rows[0];
-    link.share_url = shareUrl;
+    // Validate required fields
+    if (!trainingProgramId) {
+      return res.status(400).json({
+        success: false,
+        message: 'trainingProgramId is required'
+      });
+    }
 
-    res.json({
+    if (!trainingClassId) {
+      return res.status(400).json({
+        success: false,
+        message: 'trainingClassId is required'
+      });
+    }
+
+    if (!personnelTypeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'personnelTypeId is required'
+      });
+    }
+
+    if (!maxRegistrations || maxRegistrations <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'maxRegistrations must be greater than 0'
+      });
+    }
+
+    if (!expiryDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'expiryDate is required'
+      });
+    }
+
+    // Validate that expiry date is in the future
+    const expiry = new Date(expiryDate);
+    if (expiry <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'expiryDate must be in the future'
+      });
+    }
+
+    // ==================== CREATE LINK ====================
+
+    // Create link with Prisma
+    const link = await prisma.registrationLink.create({
+      data: {
+        uniqueToken: uuidv4(),
+        trainingProgramId: parseInt(trainingProgramId),
+        trainingClassId: parseInt(trainingClassId),
+        personnelTypeId: parseInt(personnelTypeId),
+        createdByAdminId: userId,
+        maxRegistrations: parseInt(maxRegistrations),
+        currentRegistrations: 0,
+        expiryDate: expiry,
+        waGroupLink: waGroupLink || null,
+        status: 'active',
+        
+        // Add required documents if provided
+        ...(requiredDocuments.length > 0 && {
+          requiredDocuments: {
+            createMany: {
+              data: requiredDocuments.map(doc => ({
+                documentType: doc.documentType,
+                displayName: doc.displayName,
+                isRequired: doc.isRequired !== false
+              }))
+            }
+          }
+        })
+      },
+      include: {
+        trainingProgram: {
+          select: {
+            id: true,
+            name: true,
+            durationDays: true
+          }
+        },
+        trainingClass: {
+          select: {
+            id: true,
+            name: true,
+            level: true
+          }
+        },
+        personnelType: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        createdByAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json({
       success: true,
       message: 'Registration link created successfully',
-      data: {
-        ...link,
-        share_url: shareUrl,
-        qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`,
-      },
+      data: formatLinkResponse(link)
     });
   } catch (error) {
     console.error('Create link error:', error);
+
+    // Handle specific Prisma errors
+    if (error.code === 'P2025') {
+      // Record not found
+      return res.status(400).json({
+        success: false,
+        message: 'Training program, class, or personnel type not found'
+      });
+    }
+
+    if (error.code === 'P2014') {
+      // Foreign key constraint failed
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid training program, class, or personnel type ID'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Failed to create link',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Update registration link
+/**
+ * PUT /api/admin/links/:id
+ * Update registration link
+ * 
+ * Can update:
+ * - maxRegistrations
+ * - expiryDate
+ * - waGroupLink
+ * - status (active, expired, filled)
+ */
 router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { class_level, personnel_type, max_registrations, expiry_date, whatsapp_link, status } = req.body;
+    const { maxRegistrations, expiryDate, waGroupLink, status } = req.body;
+    const linkId = parseInt(id);
 
-    const updates = [];
-    const values = [id];
-    let paramCount = 2;
+    // Build update data (only include provided fields)
+    const updateData = {};
 
-    if (class_level !== undefined) {
-      updates.push(`class_level = $${paramCount++}`);
-      values.push(class_level);
+    if (maxRegistrations !== undefined) {
+      if (maxRegistrations <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'maxRegistrations must be greater than 0'
+        });
+      }
+      updateData.maxRegistrations = parseInt(maxRegistrations);
     }
-    if (personnel_type !== undefined) {
-      updates.push(`personnel_type = $${paramCount++}`);
-      values.push(personnel_type);
+
+    if (expiryDate !== undefined) {
+      const expiry = new Date(expiryDate);
+      if (expiry <= new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'expiryDate must be in the future'
+        });
+      }
+      updateData.expiryDate = expiry;
     }
-    if (max_registrations !== undefined) {
-      updates.push(`max_registrations = $${paramCount++}`);
-      values.push(max_registrations);
+
+    if (waGroupLink !== undefined) {
+      updateData.waGroupLink = waGroupLink || null;
     }
-    if (expiry_date !== undefined) {
-      updates.push(`expiry_date = $${paramCount++}`);
-      values.push(expiry_date);
-    }
-    if (whatsapp_link !== undefined) {
-      updates.push(`whatsapp_link = $${paramCount++}`);
-      values.push(whatsapp_link);
-    }
+
     if (status !== undefined) {
-      updates.push(`status = $${paramCount++}`);
-      values.push(status);
+      if (!['active', 'expired', 'filled'].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status. Must be: active, expired, or filled'
+        });
+      }
+      updateData.status = status;
     }
 
-    if (updates.length === 0) {
+    if (Object.keys(updateData).length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No fields to update',
+        message: 'No fields to update'
       });
     }
 
-    const query = `UPDATE registration_links SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $1 RETURNING *`;
-    const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Link not found',
-      });
-    }
-
-    const link = result.rows[0];
-    link.share_url = generateLink(link.token);
+    // Update link
+    const link = await prisma.registrationLink.update({
+      where: {
+        id: isNaN(linkId) ? undefined : linkId
+      },
+      data: updateData,
+      include: {
+        trainingProgram: true,
+        trainingClass: true,
+        personnelType: true,
+        createdByAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
 
     res.json({
       success: true,
       message: 'Link updated successfully',
-      data: link,
+      data: formatLinkResponse(link)
     });
   } catch (error) {
     console.error('Update link error:', error);
+
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: 'Link not found'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Failed to update link',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Delete registration link
+/**
+ * DELETE /api/admin/links/:id
+ * Delete registration link
+ */
 router.delete('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
+    const linkId = parseInt(id);
 
-    const result = await pool.query(
-      'DELETE FROM registration_links WHERE id = $1 RETURNING *',
-      [id]
-    );
+    // First check if link exists
+    const existingLink = await prisma.registrationLink.findUnique({
+      where: {
+        id: isNaN(linkId) ? undefined : linkId
+      }
+    });
 
-    if (result.rows.length === 0) {
+    if (!existingLink) {
       return res.status(404).json({
         success: false,
-        message: 'Link not found',
+        message: 'Link not found'
+      });
+    }
+
+    // Check if there are registrations
+    if (existingLink.currentRegistrations > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete link with ${existingLink.currentRegistrations} existing registrations. Please contact administrator.`,
+        currentRegistrations: existingLink.currentRegistrations
+      });
+    }
+
+    // Delete link (will cascade delete required documents)
+    const link = await prisma.registrationLink.delete({
+      where: {
+        id: isNaN(linkId) ? undefined : linkId
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Link deleted successfully',
+      data: {
+        id: link.id,
+        uniqueToken: link.uniqueToken
+      }
+    });
+  } catch (error) {
+    console.error('Delete link error:', error);
+
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: 'Link not found'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete link',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * GET /api/admin/links/public/validate/:token
+ * Validate token without auth (public endpoint)
+ */
+router.get('/public/validate/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const link = await prisma.registrationLink.findUnique({
+      where: { uniqueToken: token },
+      include: {
+        trainingProgram: {
+          select: {
+            id: true,
+            name: true,
+            durationDays: true
+          }
+        },
+        trainingClass: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        personnelType: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!link) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid registration link'
+      });
+    }
+
+    // Check if link is active
+    if (link.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: `Link is ${link.status}. Cannot register.`
+      });
+    }
+
+    // Check if link has expired
+    if (new Date() > new Date(link.expiryDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration link has expired'
+      });
+    }
+
+    // Check if link is full
+    if (link.currentRegistrations >= link.maxRegistrations) {
+      return res.status(400).json({
+        success: false,
+        message: 'This registration link has reached maximum capacity'
       });
     }
 
     res.json({
       success: true,
-      message: 'Link deleted successfully',
-      data: result.rows[0],
+      message: 'Link is valid',
+      data: {
+        token: link.uniqueToken,
+        trainingProgram: link.trainingProgram,
+        trainingClass: link.trainingClass,
+        personnelType: link.personnelType,
+        spotsAvailable: link.maxRegistrations - link.currentRegistrations,
+        maxRegistrations: link.maxRegistrations
+      }
     });
   } catch (error) {
-    console.error('Delete link error:', error);
+    console.error('Validate token error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Failed to validate link'
     });
   }
 });
