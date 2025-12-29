@@ -1,0 +1,22 @@
+# Cloudflare Tunnel Credentials
+# These files contain sensitive information and should NEVER be committed to Git
+
+# Certificate file
+cert.pem
+
+# Backup certificates
+*.pem
+*.pem.bak
+
+# Local configuration overrides
+config.local.yml
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
