@@ -7,8 +7,11 @@ const prisma = new PrismaClient();
 /**
  * GET /api/public/links/public/validate/:token
  * Validate registration link and return training info + dropdown options
+ *
+ * NOTE: We also keep a backwards-compatible alias:
+ * GET /api/public/links/validate/:token
  */
-router.get('/links/public/validate/:token', async (req, res) => {
+const validateRegistrationLink = async (req, res) => {
   try {
     const { token } = req.params;
     console.log(`[Public] Validating registration link token: ${token}`);
@@ -88,7 +91,7 @@ router.get('/links/public/validate/:token', async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
-    console.log(`[Public] Returning link data with options`);
+    console.log('[Public] Returning link data with options');
 
     res.json({
       success: true,
@@ -114,7 +117,12 @@ router.get('/links/public/validate/:token', async (req, res) => {
       message: 'Server error'
     });
   }
-});
+};
+
+// Primary route (new)
+router.get('/links/public/validate/:token', validateRegistrationLink);
+// Backwards compatible route (old frontend)
+router.get('/links/validate/:token', validateRegistrationLink);
 
 /**
  * POST /api/public/registrations
