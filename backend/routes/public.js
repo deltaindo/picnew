@@ -5,12 +5,13 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * GET /api/public/links/public/validate/:token
+ * GET /api/public/links/validate/:token
  * Validate registration link and return training info + dropdown options
  */
-router.get('/links/public/validate/:token', async (req, res) => {
+router.get('/links/validate/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    console.log(`[Public] Validating registration link token: ${token}`);
 
     const link = await prisma.registrationLink.findUnique({
       where: { uniqueToken: token },
@@ -28,11 +29,14 @@ router.get('/links/public/validate/:token', async (req, res) => {
     });
 
     if (!link) {
+      console.log(`[Public] Link not found for token: ${token}`);
       return res.status(404).json({
         success: false,
         message: 'Invalid registration link'
       });
     }
+
+    console.log(`[Public] Link found: ${link.id}, Status: ${link.status}`);
 
     // Check if active
     if (link.status !== 'active') {
@@ -84,6 +88,8 @@ router.get('/links/public/validate/:token', async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
+    console.log(`[Public] Returning link data with options`);
+
     res.json({
       success: true,
       data: {
@@ -117,6 +123,7 @@ router.get('/links/public/validate/:token', async (req, res) => {
 router.post('/registrations', async (req, res) => {
   try {
     const { token, nama, ktp, email, wa, ...otherFields } = req.body;
+    console.log(`[Public] New registration submission with token: ${token}`);
 
     // Verify link exists and is active
     const link = await prisma.registrationLink.findUnique({
@@ -172,6 +179,8 @@ router.post('/registrations', async (req, res) => {
       where: { id: link.id },
       data: { currentRegistrations: { increment: 1 } }
     });
+
+    console.log(`[Public] Registration created: ${registration.id}`);
 
     res.json({
       success: true,
