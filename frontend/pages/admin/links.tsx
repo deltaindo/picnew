@@ -8,18 +8,35 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
 interface RegistrationLink {
-  id: string;
-  token: string;
-  training_id: string;
-  training_name: string;
-  class_level: string;
-  personnel_type: string;
-  max_registrations: number;
-  current_registrations: number;
-  expiry_date: string;
-  whatsapp_link: string;
-  status: 'active' | 'expired' | 'archived';
-  created_at: string;
+  id: number;
+  uniqueToken: string;
+  trainingProgramId: number;
+  trainingClassId: number;
+  personnelTypeId: number;
+  createdByAdminId: number;
+  maxRegistrations: number;
+  currentRegistrations: number;
+  expiryDate: string;
+  waGroupLink?: string;
+  status: 'active' | 'expired' | 'filled';
+  createdAt: string;
+  share_url?: string;
+  qr_code_url?: string;
+  // Relations
+  trainingProgram?: {
+    id: number;
+    name: string;
+    durationDays: number;
+  };
+  trainingClass?: {
+    id: number;
+    name: string;
+    level: string;
+  };
+  personnelType?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface Bidang {
@@ -75,13 +92,12 @@ export default function LinksPage() {
   });
 
   const [formData, setFormData] = useState({
-    bidang_id: '',
-    training_id: '',
-    class_id: '',
-    start_date: '',
-    end_date: '',
-    whatsapp_link: '',
-    location: '',
+    trainingProgramId: '',
+    trainingClassId: '',
+    personnelTypeId: '',
+    maxRegistrations: 25,
+    expiryDate: '',
+    waGroupLink: '',
   });
 
   useEffect(() => {
@@ -179,13 +195,28 @@ export default function LinksPage() {
     e.preventDefault();
 
     // Validation
-    if (!formData.training_id) {
+    if (!formData.trainingProgramId) {
       alert('❌ Pilih training terlebih dahulu');
       return;
     }
 
+    if (!formData.trainingClassId) {
+      alert('❌ Pilih kelas terlebih dahulu');
+      return;
+    }
+
+    if (!formData.personnelTypeId) {
+      alert('❌ Pilih tipe personel terlebih dahulu');
+      return;
+    }
+
+    if (!formData.expiryDate) {
+      alert('❌ Pilih tanggal kedaluwarsa terlebih dahulu');
+      return;
+    }
+
     // Validate selected training exists in programs
-    const selectedTraining = programs.find(p => p.id === formData.training_id);
+    const selectedTraining = programs.find(p => p.id === formData.trainingProgramId);
     if (!selectedTraining) {
       alert('❌ Training yang dipilih tidak valid');
       return;
@@ -195,16 +226,14 @@ export default function LinksPage() {
       setIsSubmitting(true);
       const token = localStorage.getItem('token');
 
-      // Build payload matching backend expectations
+      // Build payload matching UPDATED backend expectations
       const payload = {
-        training_id: formData.training_id,
-        bidang_id: formData.bidang_id || undefined,
-        class_level: formData.class_id || undefined,
-        location: formData.location || undefined,
-        start_date: formData.start_date || undefined,
-        end_date: formData.end_date || undefined,
-        whatsapp_link: formData.whatsapp_link || undefined,
-        max_registrations: 25,
+        trainingProgramId: parseInt(formData.trainingProgramId),
+        trainingClassId: parseInt(formData.trainingClassId),
+        personnelTypeId: parseInt(formData.personnelTypeId),
+        maxRegistrations: formData.maxRegistrations,
+        expiryDate: formData.expiryDate,
+        waGroupLink: formData.waGroupLink || undefined,
       };
 
       // Remove undefined values
@@ -222,13 +251,12 @@ export default function LinksPage() {
       console.log('Create response:', response.data);
 
       setFormData({
-        bidang_id: '',
-        training_id: '',
-        class_id: '',
-        start_date: '',
-        end_date: '',
-        whatsapp_link: '',
-        location: '',
+        trainingProgramId: '',
+        trainingClassId: '',
+        personnelTypeId: '',
+        maxRegistrations: 25,
+        expiryDate: '',
+        waGroupLink: '',
       });
       setShowCreateModal(false);
       await fetchLinks();
@@ -248,8 +276,8 @@ export default function LinksPage() {
         return 'bg-green-500 bg-opacity-20 text-green-400';
       case 'expired':
         return 'bg-red-500 bg-opacity-20 text-red-400';
-      case 'archived':
-        return 'bg-gray-500 bg-opacity-20 text-gray-400';
+      case 'filled':
+        return 'bg-yellow-500 bg-opacity-20 text-yellow-400';
       default:
         return 'bg-blue-500 bg-opacity-20 text-blue-400';
     }
@@ -322,26 +350,26 @@ export default function LinksPage() {
                 ) : (
                   links.map((link) => (
                     <tr key={link.id} className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors">
-                      <td className="px-4 py-3 text-white font-medium">{link.training_name}</td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">{link.class_level || '-'}</td>
+                      <td className="px-4 py-3 text-white font-medium">{link.trainingProgram?.name || '-'}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">{link.trainingClass?.name || '-'}</td>
                       <td className="px-4 py-3 text-[#8fa3b8]">
-                        <span className="text-blue-400 font-medium">{link.current_registrations}</span>
-                        <span className="text-[#8fa3b8]">/{link.max_registrations}</span>
+                        <span className="text-blue-400 font-medium">{link.currentRegistrations}</span>
+                        <span className="text-[#8fa3b8]">/{link.maxRegistrations}</span>
                       </td>
                       <td className="px-4 py-3 text-[#8fa3b8]">
-                        {link.expiry_date ? new Date(link.expiry_date).toLocaleDateString('id-ID') : '-'}
+                        {link.expiryDate ? new Date(link.expiryDate).toLocaleDateString('id-ID') : '-'}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-3 py-1 rounded text-xs font-medium ${getStatusColor(link.status)}`}>
                           {link.status === 'active' && '✓ Active'}
                           {link.status === 'expired' && '✗ Expired'}
-                          {link.status === 'archived' && '📦 Archived'}
+                          {link.status === 'filled' && '📦 Filled'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-3">
                           <button
-                            onClick={() => copyToClipboard(link.token)}
+                            onClick={() => copyToClipboard(link.uniqueToken)}
                             title="Copy link"
                             className="text-[#8fa3b8] hover:text-blue-400 transition-colors text-lg"
                           >
@@ -379,41 +407,46 @@ export default function LinksPage() {
               </div>
 
               <form onSubmit={handleCreateLink} className="space-y-4">
-                {/* Bidang */}
+                {/* Training Program */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Bidang {masterDataLoading.bidangs && <span className="text-xs text-gray-500">(loading...)</span>}
+                    Program Pelatihan * {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
                   </label>
-                  {masterDataError.bidangs && (
-                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.bidangs}</p>
+                  {masterDataError.programs && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.programs}</p>
                   )}
                   <select
-                    value={formData.bidang_id}
-                    onChange={(e) => setFormData({ ...formData, bidang_id: e.target.value })}
+                    value={formData.trainingProgramId}
+                    onChange={(e) => setFormData({ ...formData, trainingProgramId: e.target.value })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
-                    disabled={isSubmitting || masterDataLoading.bidangs}
+                    required
+                    disabled={isSubmitting || masterDataLoading.programs}
                   >
-                    <option value="">-- Pilih Bidang --</option>
-                    {bidangs.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
+                    <option value="">-- Pilih Program Pelatihan --</option>
+                    {programs.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
+                  {programs.length === 0 && !masterDataLoading.programs && !masterDataError.programs && (
+                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada program tersedia. Buat program di halaman Master Data terlebih dahulu.</p>
+                  )}
                 </div>
 
-                {/* Kelas */}
+                {/* Training Class */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Kelas {masterDataLoading.kelas && <span className="text-xs text-gray-500">(loading...)</span>}
+                    Kelas Pelatihan * {masterDataLoading.kelas && <span className="text-xs text-gray-500">(loading...)</span>}
                   </label>
                   {masterDataError.kelas && (
                     <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.kelas}</p>
                   )}
                   <select
-                    value={formData.class_id}
-                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                    value={formData.trainingClassId}
+                    onChange={(e) => setFormData({ ...formData, trainingClassId: e.target.value })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    required
                     disabled={isSubmitting || masterDataLoading.kelas}
                   >
                     <option value="">-- Pilih Kelas --</option>
@@ -425,79 +458,70 @@ export default function LinksPage() {
                   </select>
                 </div>
 
-                {/* Training */}
+                {/* Personnel Type */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Training * {masterDataLoading.programs && <span className="text-xs text-gray-500">(loading...)</span>}
+                    Tipe Personel * {masterDataLoading.bidangs && <span className="text-xs text-gray-500">(loading...)</span>}
                   </label>
-                  {masterDataError.programs && (
-                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.programs}</p>
+                  {masterDataError.bidangs && (
+                    <p className="text-red-500 text-xs mb-2">⚠️ {masterDataError.bidangs}</p>
                   )}
                   <select
-                    value={formData.training_id}
-                    onChange={(e) => setFormData({ ...formData, training_id: e.target.value })}
+                    value={formData.personnelTypeId}
+                    onChange={(e) => setFormData({ ...formData, personnelTypeId: e.target.value })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
                     required
-                    disabled={isSubmitting || masterDataLoading.programs}
+                    disabled={isSubmitting || masterDataLoading.bidangs}
                   >
-                    <option value="">-- Pilih Training --</option>
-                    {programs.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                    <option value="">-- Pilih Tipe Personel --</option>
+                    {bidangs.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
                       </option>
                     ))}
                   </select>
-                  {programs.length === 0 && !masterDataLoading.programs && !masterDataError.programs && (
-                    <p className="text-orange-500 text-xs mt-1">⚠️ Tidak ada training tersedia. Buat training di halaman Master Data terlebih dahulu.</p>
-                  )}
                 </div>
 
-                {/* Tanggal Mulai Training & Tanggal Selesai (side by side) */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-700 text-sm font-medium mb-2">Tanggal Mulai Training</label>
-                    <input
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 text-sm font-medium mb-2">Tanggal Selesai</label>
-                    <input
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                {/* Link Grup Whatsapp */}
+                {/* Max Registrations */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Link Grup Whatsapp</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Maksimal Pendaftar *
+                  </label>
                   <input
-                    type="url"
-                    value={formData.whatsapp_link}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_link: e.target.value })}
+                    type="number"
+                    min="1"
+                    value={formData.maxRegistrations}
+                    onChange={(e) => setFormData({ ...formData, maxRegistrations: parseInt(e.target.value) || 25 })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
-                    placeholder="https://chat.whatsapp.com/..."
                     disabled={isSubmitting}
+                    required
                   />
                 </div>
 
-                {/* Tempat Pelaksanaan */}
+                {/* Expiry Date */}
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Tempat Pelaksanaan</label>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Tanggal Kadaluarsa *
+                  </label>
                   <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    type="datetime-local"
+                    value={formData.expiryDate}
+                    onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                     className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
-                    placeholder="e.g., Bekasi Training Center"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+
+                {/* Whatsapp Group Link */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Link Grup WhatsApp</label>
+                  <input
+                    type="url"
+                    value={formData.waGroupLink}
+                    onChange={(e) => setFormData({ ...formData, waGroupLink: e.target.value })}
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                    placeholder="https://chat.whatsapp.com/..."
                     disabled={isSubmitting}
                   />
                 </div>
@@ -510,12 +534,12 @@ export default function LinksPage() {
                     className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors font-medium disabled:opacity-50"
                     disabled={isSubmitting}
                   >
-                    Cancel
+                    Batal
                   </button>
                   <button
                     type="submit"
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
-                    disabled={isSubmitting || !formData.training_id}
+                    disabled={isSubmitting || !formData.trainingProgramId || !formData.trainingClassId || !formData.personnelTypeId || !formData.expiryDate}
                   >
                     {isSubmitting ? '⏳ Membuat...' : '✅ Buat'}
                   </button>
@@ -541,24 +565,28 @@ export default function LinksPage() {
 
               <div className="space-y-4">
                 <div>
-                  <p className="text-[#8fa3b8] text-sm">Training</p>
-                  <p className="text-white font-semibold">{selectedLink.training_name}</p>
+                  <p className="text-[#8fa3b8] text-sm">Program Pelatihan</p>
+                  <p className="text-white font-semibold">{selectedLink.trainingProgram?.name || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-[#8fa3b8] text-sm">Class Level</p>
-                  <p className="text-white font-semibold">{selectedLink.class_level || '-'}</p>
+                  <p className="text-[#8fa3b8] text-sm">Kelas</p>
+                  <p className="text-white font-semibold">{selectedLink.trainingClass?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[#8fa3b8] text-sm">Tipe Personel</p>
+                  <p className="text-white font-semibold">{selectedLink.personnelType?.name || '-'}</p>
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Registration URL</p>
                   <div className="flex items-center gap-2 mt-2">
                     <input
                       type="text"
-                      value={`${window.location.origin}/register/${selectedLink.token}`}
+                      value={selectedLink.share_url || `${window.location.origin}/register/${selectedLink.uniqueToken}`}
                       readOnly
                       className="flex-1 bg-[#1a2332] border border-[#2d3e52] rounded px-3 py-2 text-[#8fa3b8] text-sm focus:outline-none"
                     />
                     <button
-                      onClick={() => copyToClipboard(selectedLink.token)}
+                      onClick={() => copyToClipboard(selectedLink.uniqueToken)}
                       className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
                     >
                       📋
@@ -566,17 +594,23 @@ export default function LinksPage() {
                   </div>
                 </div>
                 <div>
+                  <p className="text-[#8fa3b8] text-sm">QR Code</p>
+                  {selectedLink.qr_code_url && (
+                    <img src={selectedLink.qr_code_url} alt="QR Code" className="w-32 h-32 mt-2" />
+                  )}
+                </div>
+                <div>
                   <p className="text-[#8fa3b8] text-sm">Max Registrations</p>
-                  <p className="text-white font-semibold">{selectedLink.max_registrations}</p>
+                  <p className="text-white font-semibold">{selectedLink.maxRegistrations}</p>
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Current Registrations</p>
-                  <p className="text-white font-semibold">{selectedLink.current_registrations}</p>
+                  <p className="text-white font-semibold">{selectedLink.currentRegistrations}</p>
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Expiry Date</p>
                   <p className="text-white font-semibold">
-                    {selectedLink.expiry_date ? new Date(selectedLink.expiry_date).toLocaleDateString('id-ID') : '-'}
+                    {selectedLink.expiryDate ? new Date(selectedLink.expiryDate).toLocaleDateString('id-ID') : '-'}
                   </p>
                 </div>
               </div>
