@@ -5,10 +5,10 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * GET /api/public/links/validate/:token
+ * GET /api/public/links/public/validate/:token
  * Validate registration link and return training info + dropdown options
  */
-router.get('/links/validate/:token', async (req, res) => {
+router.get('/links/public/validate/:token', async (req, res) => {
   try {
     const { token } = req.params;
     console.log(`[Public] Validating registration link token: ${token}`);
