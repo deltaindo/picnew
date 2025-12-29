@@ -107,10 +107,9 @@ const validateRegistrationLink = async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
-    const educationLevels = await prisma.educationLevel.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' }
-    });
+    // Note: educationLevel model doesn't exist in schema yet
+    // For now, return empty array - frontend can provide hardcoded list or we add the model later
+    const educationLevels = [];
 
     console.log('[Public] Returning link data with options');
 
@@ -154,6 +153,13 @@ router.post('/registrations', async (req, res) => {
     const { token, nama, ktp, email, wa, ...otherFields } = req.body;
     console.log(`[Public] New registration submission with token: ${token}`);
 
+    if (!prisma) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
+      });
+    }
+
     // Verify link exists and is active
     const link = await prisma.registrationLink.findUnique({
       where: { uniqueToken: token }
@@ -182,24 +188,11 @@ router.post('/registrations', async (req, res) => {
         email: email,
         phone: wa,
         nik: ktp,
-        tempatLahir: otherFields.tempat_lahir,
-        tanggalLahir: otherFields.tanggal_lahir ? new Date(otherFields.tanggal_lahir) : null,
-        pendidikan: otherFields.pendidikan,
-        namaSekolah: otherFields.nama_sekolah,
-        noIjazah: otherFields.no_ijazah,
-        tglIjazah: otherFields.tgl_ijazah ? new Date(otherFields.tgl_ijazah) : null,
-        provinceId: otherFields.province_id ? parseInt(otherFields.province_id) : null,
-        districtId: otherFields.district_id ? parseInt(otherFields.district_id) : null,
-        subDistrictId: otherFields.subdistrict_id ? parseInt(otherFields.subdistrict_id) : null,
-        villageId: otherFields.village_id ? parseInt(otherFields.village_id) : null,
-        alamatRumah: otherFields.alamat_rumah,
-        golonganDarah: otherFields.golongan_darah,
-        instansi: otherFields.instansi,
-        sektor: otherFields.sektor,
-        alamatPerusahaan: otherFields.alamat_perusahaan,
-        jabatan: otherFields.jabatan,
-        tlpKantor: otherFields.tlp_kantor,
-        submissionStatus: 'submitted'
+        address: otherFields.alamat_rumah,
+        bloodType: otherFields.golongan_darah,
+        educationLevel: otherFields.pendidikan,
+        companyName: otherFields.instansi,
+        jobTitle: otherFields.jabatan
       }
     });
 
@@ -223,20 +216,41 @@ router.post('/registrations', async (req, res) => {
     console.error('Submit registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error: ' + error.message
     });
   }
 });
 
 /**
- * GET /api/public/locations/districts/:province_id
- * Get districts by province
+ * GET /api/public/locations/regencies/:province_id
+ * Get regencies by province (Level 2 hierarchy)
+ * Schema: Province -> Regency -> District -> Village
  */
-router.get('/locations/districts/:province_id', async (req, res) => {
+router.get('/locations/regencies/:province_id', async (req, res) => {
   try {
     const { province_id } = req.params;
-    const districts = await prisma.district.findMany({
+    const regencies = await prisma.regency.findMany({
       where: { provinceId: parseInt(province_id) },
+      select: { id: true, name: true, type: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: regencies || [] });
+  } catch (error) {
+    console.error('Get regencies error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
+ * GET /api/public/locations/districts/:regency_id
+ * Get districts by regency (Level 3 hierarchy)
+ * Schema: Province -> Regency -> District -> Village
+ */
+router.get('/locations/districts/:regency_id', async (req, res) => {
+  try {
+    const { regency_id } = req.params;
+    const districts = await prisma.district.findMany({
+      where: { regencyId: parseInt(regency_id) },
       select: { id: true, name: true },
       orderBy: { name: 'asc' }
     });
@@ -248,34 +262,16 @@ router.get('/locations/districts/:province_id', async (req, res) => {
 });
 
 /**
- * GET /api/public/locations/subdistricts/:district_id
- * Get subdistricts by district
+ * GET /api/public/locations/villages/:district_id
+ * Get villages by district (Level 4 hierarchy)
+ * Schema: Province -> Regency -> District -> Village
  */
-router.get('/locations/subdistricts/:district_id', async (req, res) => {
+router.get('/locations/villages/:district_id', async (req, res) => {
   try {
     const { district_id } = req.params;
-    const subdistricts = await prisma.subDistrict.findMany({
-      where: { districtId: parseInt(district_id) },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' }
-    });
-    res.json({ success: true, data: subdistricts || [] });
-  } catch (error) {
-    console.error('Get subdistricts error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-/**
- * GET /api/public/locations/villages/:subdistrict_id
- * Get villages by subdistrict
- */
-router.get('/locations/villages/:subdistrict_id', async (req, res) => {
-  try {
-    const { subdistrict_id } = req.params;
     const villages = await prisma.village.findMany({
-      where: { subDistrictId: parseInt(subdistrict_id) },
-      select: { id: true, name: true },
+      where: { districtId: parseInt(district_id) },
+      select: { id: true, name: true, type: true },
       orderBy: { name: 'asc' }
     });
     res.json({ success: true, data: villages || [] });
