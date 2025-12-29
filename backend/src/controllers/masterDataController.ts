@@ -244,3 +244,272 @@ export const createPersonnelType = async (req: Request, res: Response) => {
     handleError(error, res, 'Create personnel type');
   }
 };
+
+// ============ PIC (PERSON IN CHARGE) ============
+
+export const getPIC = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, data] = await Promise.all([
+      prisma.pic.count(),
+      prisma.pic.findMany({
+        skip,
+        take: Number(limit),
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    handleError(error, res, 'Get PIC');
+  }
+};
+
+export const createPIC = async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const pic = await prisma.pic.create({ data: { name: name.trim() } });
+
+    logger.info(`PIC created: ${pic.name}`);
+
+    res.status(201).json({ success: true, data: pic });
+  } catch (error: any) {
+    handleError(error, res, 'Create PIC');
+  }
+};
+
+export const updatePIC = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const pic = await prisma.pic.update({
+      where: { id: Number(id) },
+      data: { name: name.trim() },
+    });
+
+    logger.info(`PIC updated: ${pic.name}`);
+
+    res.json({ success: true, data: pic });
+  } catch (error: any) {
+    handleError(error, res, 'Update PIC');
+  }
+};
+
+export const deletePIC = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    await prisma.pic.delete({ where: { id: Number(id) } });
+
+    logger.info(`PIC deleted: ${id}`);
+
+    res.json({ success: true, message: 'PIC deleted' });
+  } catch (error: any) {
+    handleError(error, res, 'Delete PIC');
+  }
+};
+
+// ============ MARKETING ============
+
+export const getMarketing = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, data] = await Promise.all([
+      prisma.marketing.count(),
+      prisma.marketing.findMany({
+        skip,
+        take: Number(limit),
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    handleError(error, res, 'Get marketing');
+  }
+};
+
+export const createMarketing = async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const marketing = await prisma.marketing.create({ data: { name: name.trim() } });
+
+    logger.info(`Marketing created: ${marketing.name}`);
+
+    res.status(201).json({ success: true, data: marketing });
+  } catch (error: any) {
+    handleError(error, res, 'Create marketing');
+  }
+};
+
+export const updateMarketing = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const marketing = await prisma.marketing.update({
+      where: { id: Number(id) },
+      data: { name: name.trim() },
+    });
+
+    logger.info(`Marketing updated: ${marketing.name}`);
+
+    res.json({ success: true, data: marketing });
+  } catch (error: any) {
+    handleError(error, res, 'Update marketing');
+  }
+};
+
+export const deleteMarketing = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    await prisma.marketing.delete({ where: { id: Number(id) } });
+
+    logger.info(`Marketing deleted: ${id}`);
+
+    res.json({ success: true, message: 'Marketing deleted' });
+  } catch (error: any) {
+    handleError(error, res, 'Delete marketing');
+  }
+};
+
+// ============ PROGRAM TYPES ============
+
+export const getProgramTypes = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, data] = await Promise.all([
+      prisma.programType.count(),
+      prisma.programType.findMany({
+        skip,
+        take: Number(limit),
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    handleError(error, res, 'Get program types');
+  }
+};
+
+export const createProgramType = async (req: Request, res: Response) => {
+  try {
+    const { name, description } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const programType = await prisma.programType.create({
+      data: { name: name.trim(), description: description?.trim() || null },
+    });
+
+    logger.info(`Program type created: ${programType.name}`);
+
+    res.status(201).json({ success: true, data: programType });
+  } catch (error: any) {
+    handleError(error, res, 'Create program type');
+  }
+};
+
+export const updateProgramType = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const programType = await prisma.programType.update({
+      where: { id: Number(id) },
+      data: { 
+        name: name.trim(),
+        ...(description !== undefined && { description: description?.trim() || null })
+      },
+    });
+
+    logger.info(`Program type updated: ${programType.name}`);
+
+    res.json({ success: true, data: programType });
+  } catch (error: any) {
+    handleError(error, res, 'Update program type');
+  }
+};
+
+export const deleteProgramType = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    await prisma.programType.delete({ where: { id: Number(id) } });
+
+    logger.info(`Program type deleted: ${id}`);
+
+    res.json({ success: true, message: 'Program type deleted' });
+  } catch (error: any) {
+    handleError(error, res, 'Delete program type');
+  }
+};
