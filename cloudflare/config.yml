@@ -1,0 +1,48 @@
+# Cloudflare Tunnel Configuration
+# Replace yourdomain.com with your actual domain
+
+tunnel: picnew-prod-tunnel
+credentials-file: /etc/cloudflared/cert.pem
+
+# Connection settings
+protocol: http2
+
+# Logging
+logger:
+  level: info
+  format: json
+
+ingress:
+  # Frontend service - main app
+  - hostname: app.yourdomain.com
+    service: http://frontend:3000
+    originRequest:
+      connectTimeout: 30s
+      tlsTimeout: 30s
+      tcpKeepAlive: 30s
+
+  # Alternative hostname for frontend (www)
+  - hostname: www.yourdomain.com
+    service: http://frontend:3000
+    originRequest:
+      connectTimeout: 30s
+
+  # Backend API service
+  - hostname: api.yourdomain.com
+    service: http://backend:5000
+    originRequest:
+      connectTimeout: 30s
+      tlsTimeout: 30s
+      tcpKeepAlive: 30s
+      headers:
+        add:
+          X-Forwarded-Proto: https
+
+  # Health check endpoint
+  - hostname: health.yourdomain.com
+    service: http://backend:5000/api/health
+    originRequest:
+      connectTimeout: 10s
+
+  # Catch-all for unmatched routes - returns 404
+  - service: http_status:404
