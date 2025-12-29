@@ -1,15 +1,20 @@
 const { PrismaClient } = require('@prisma/client');
 
-// Create a single instance to avoid connection pool exhaustion
-const prisma = new PrismaClient();
+console.log('\n✅ [Prisma Client] Initializing...');
 
-// Log when connected
-prisma.$connect()
+// Create a single instance to avoid connection pool exhaustion
+const prisma = new PrismaClient({
+  log: ['query', 'error', 'warn'],
+});
+
+// Test connection immediately on module load
+prima.$connect()
   .then(() => {
-    console.log('✅ [Prisma] Connected to database');
+    console.log('✅ [Prisma] Successfully connected to database');
   })
   .catch((err) => {
-    console.error('❌ [Prisma] Connection failed:', err.message);
+    console.error('❌ [Prisma] Failed to connect:', err.message);
+    process.exit(1);
   });
 
 // Graceful disconnect on process termination
@@ -24,5 +29,7 @@ process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
+
+console.log('[Prisma Client] Module ready for export');
 
 module.exports = prisma;
