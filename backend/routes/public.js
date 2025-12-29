@@ -1,6 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../prisma-client');
+
+console.log('[Routes/Public] Loading...');
+let prisma;
+try {
+  prisma = require('../prisma-client');
+  console.log('[Routes/Public] ✅ Prisma client imported successfully');
+} catch (err) {
+  console.error('[Routes/Public] ❌ Failed to import prisma-client:', err.message);
+  console.error(err);
+}
+
+if (!prisma) {
+  console.error('[Routes/Public] ⚠️  CRITICAL: prisma is undefined!');
+} else {
+  console.log('[Routes/Public] ✅ prisma object is valid:', typeof prisma);
+}
 
 /**
  * GET /api/public/links/public/validate/:token
@@ -13,6 +28,14 @@ const validateRegistrationLink = async (req, res) => {
   try {
     const { token } = req.params;
     console.log(`[Public] Validating registration link token: ${token}`);
+
+    if (!prisma) {
+      console.error('[Public] ERROR: prisma is undefined at request time');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error: Prisma client not available'
+      });
+    }
 
     const link = await prisma.registrationLink.findUnique({
       where: { uniqueToken: token },
