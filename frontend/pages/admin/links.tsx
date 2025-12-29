@@ -81,6 +81,9 @@ export default function LinksPage() {
     null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
+    null
+  );
 
   // New state for better loading/error management
   const [masterDataLoading, setMasterDataLoading] =
@@ -305,6 +308,34 @@ export default function LinksPage() {
     }
   };
 
+  const handleDeleteLink = async (id: number) => {
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token");
+
+      const response = await axios.delete(
+        `${API_BASE_URL}/api/admin/links/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("Delete response:", response.data);
+      setShowDeleteConfirm(null);
+      await fetchLinks();
+      alert("✅ Link berhasil dihapus!");
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Gagal menghapus link";
+      alert("❌ Gagal: " + errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -430,9 +461,9 @@ export default function LinksPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-block px-3 py-1 rounded text-xs font-medium ${getStatusColor(
-                            link.status
-                          )}`}
+                          className={`inline-block px-3 py-1 rounded text-xs font-medium ${
+                            getStatusColor(link.status)
+                          }`}
                         >
                           {link.status === "active" && "✓ Active"}
                           {link.status === "expired" && "✗ Expired"}
@@ -454,6 +485,14 @@ export default function LinksPage() {
                             className="text-[#8fa3b8] hover:text-green-400 transition-colors text-lg"
                           >
                             👁️
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(link.id)}
+                            title="Delete link"
+                            className="text-[#8fa3b8] hover:text-red-400 transition-colors text-lg"
+                            disabled={isSubmitting}
+                          >
+                            🗑️
                           </button>
                         </div>
                       </td>
@@ -678,6 +717,37 @@ export default function LinksPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] max-w-sm w-full">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-white">Hapus Link?</h2>
+                <p className="text-[#8fa3b8] mt-2">
+                  Apakah Anda yakin ingin menghapus link pendaftaran ini?
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2 bg-[#2d3e52] hover:bg-[#3a4d62] text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => handleDeleteLink(showDeleteConfirm)}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "⏳ Menghapus..." : "🗑️ Hapus"}
+                </button>
+              </div>
             </div>
           </div>
         )}
