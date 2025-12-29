@@ -171,6 +171,67 @@ async function main() {
     console.log('✅ Training Program created:', created.name);
   }
 
+  // 7. Create PIC (Person In Charge) - NEW
+  const picList = [
+    'Ghaida Trisnanda',
+    'Yuyun',
+    'Echasita',
+    'Erje',
+    'Nur Afidah',
+    'Hafid',
+    'Daniel Setiono',
+  ];
+
+  for (const picName of picList) {
+    const created = await prisma.pic.upsert({
+      where: { name: picName },
+      update: {},
+      create: { name: picName },
+    });
+    console.log('✅ PIC created:', created.name);
+  }
+
+  // 8. Create Marketing - NEW
+  const marketingList = [
+    'Agustyani',
+    'Atikah',
+    'Anik',
+    'Yoppi',
+    'Intang',
+    'Hafid',
+    'Ali M',
+    'Erje',
+    'Indri',
+    'Bayu',
+    'Yunny',
+    'Eko',
+  ];
+
+  for (const marketingName of marketingList) {
+    const created = await prisma.marketing.upsert({
+      where: { name: marketingName },
+      update: {},
+      create: { name: marketingName },
+    });
+    console.log('✅ Marketing created:', created.name);
+  }
+
+  // 9. Create Program Types (Reguler, Inhouse, BNSP) - NEW
+  const programTypeList = [
+    { name: 'Reguler', description: 'Program Reguler' },
+    { name: 'Inhouse', description: 'Program Inhouse' },
+    { name: 'BNSP', description: 'Program BNSP' },
+  ];
+
+  for (const programType of programTypeList) {
+    const created = await prisma.programType.upsert({
+      where: { name: programType.name },
+      update: {},
+      create: programType,
+    });
+    console.log('✅ Program Type created:', created.name);
+  }
+
   console.log('\n🎉 Database seeding completed successfully!');
   console.log('\n📝 Test Login Credentials:');
   console.log('   Email: admin@deltaindo.com');
@@ -181,6 +242,9 @@ async function main() {
   console.log(`   - ${personnelTypesList.length} Personnel Types`);
   console.log(`   - ${docTypesList.length} Document Types`);
   console.log(`   - ${trainingProgramsList.length} Training Programs`);
+  console.log(`   - ${picList.length} PIC (Person In Charge)`);
+  console.log(`   - ${marketingList.length} Marketing`);
+  console.log(`   - ${programTypeList.length} Program Types`);
 }
 
 main()
