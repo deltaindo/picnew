@@ -172,6 +172,43 @@ model EquipmentType {
   updatedAt DateTime  @updatedAt
 }
 
+// PIC (Person In Charge) - NEW
+model PIC {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links RegistrationLink[]
+
+  @@index([name])
+}
+
+// Marketing - NEW
+model Marketing {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links RegistrationLink[]
+
+  @@index([name])
+}
+
+// Program Type (Reguler, Inhouse, BNSP) - NEW
+model ProgramType {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  description String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links RegistrationLink[]
+
+  @@index([name])
+}
+
 // Registration Links - Created by admin
 model RegistrationLink {
   id                   Int       @id @default(autoincrement())
@@ -184,6 +221,17 @@ model RegistrationLink {
   personnelType        PersonnelType    @relation(fields: [personnelTypeId], references: [id], onDelete: Cascade)
   createdByAdminId     Int
   createdByAdmin       User     @relation(fields: [createdByAdminId], references: [id])
+  
+  // NEW FIELDS - Training Details
+  picId                Int?
+  pic                  PIC?     @relation(fields: [picId], references: [id], onDelete: SetNull)
+  marketingId          Int?
+  marketing            Marketing? @relation(fields: [marketingId], references: [id], onDelete: SetNull)
+  programTypeId        Int?
+  programType          ProgramType? @relation(fields: [programTypeId], references: [id], onDelete: SetNull)
+  tanggalPelaksanaan   DateTime?
+  tanggalSelesai       DateTime?
+  
   status               String   @default("active") // active, expired, filled
   maxRegistrations     Int
   currentRegistrations Int      @default(0)
@@ -197,6 +245,9 @@ model RegistrationLink {
 
   @@index([trainingProgramId])
   @@index([createdByAdminId])
+  @@index([picId])
+  @@index([marketingId])
+  @@index([programTypeId])
 }
 
 // Required Documents per Link
