@@ -215,8 +215,8 @@ export default function LinksPage() {
       return;
     }
 
-    // Validate selected training exists in programs
-    const selectedTraining = programs.find(p => p.id === formData.trainingProgramId);
+    // Validate selected training exists in programs (string comparison to handle HTML select conversion)
+    const selectedTraining = programs.find(p => String(p.id) === String(formData.trainingProgramId));
     if (!selectedTraining) {
       alert('❌ Training yang dipilih tidak valid');
       return;
