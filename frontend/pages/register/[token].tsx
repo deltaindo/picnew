@@ -129,8 +129,8 @@ export default function RegisterPage() {
   const fetchRegistrationLink = async () => {
     try {
       setLoading(true);
-      // FIXED: Use correct endpoint with /public/validate/
-      const response = await axios.get(`${API_BASE_URL}/api/public/links/public/validate/${token}`);
+      // FIXED: Correct endpoint path - /api/public/links/validate/:token
+      const response = await axios.get(`${API_BASE_URL}/api/public/links/validate/${token}`);
       const data = response.data.data;
       
       // Set dropdown options from link response
