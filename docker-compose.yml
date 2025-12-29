@@ -73,6 +73,28 @@ services:
     networks:
       - pic_network
 
+  # CLOUDFLARE TUNNEL SERVICE
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: pic_cloudflare_tunnel
+    command: tunnel --config /etc/cloudflared/config.yml run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    volumes:
+      - ./cloudflare/config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflare/cert.pem:/etc/cloudflared/cert.pem:ro
+    networks:
+      - pic_network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
 
