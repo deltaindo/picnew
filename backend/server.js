@@ -117,26 +117,45 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`\n${'='.repeat(70)}`);
-  console.log(`🚀 PIC APP BACKEND - STARTED`);
-  console.log(`${'='.repeat(70)}`);
-  console.log(`\n📊 Configuration:`);
-  console.log(`   Port:        ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Database:    ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'pic_app'}`);
-  console.log(`   Frontend:    ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-  console.log(`\n🔗 Test Endpoints:`);
-  console.log(`   GET  http://localhost:${PORT}/health`);
-  console.log(`   GET  http://localhost:${PORT}/api`);
-  console.log(`\n📋 Main API Routes:`);
-  console.log(`   POST /api/admin/auth/init-admin`);
-  console.log(`   POST /api/admin/auth/login`);
-  console.log(`   GET  /api/admin/auth/status`);
-  console.log(`   GET  /api/admin/training`);
-  console.log(`   POST /api/admin/links`);
-  console.log(`\n${'='.repeat(70)}`);
-  console.log('✅ Ready to receive requests!\n');
-});
+// Initialize server with auto-seed
+const startServer = async () => {
+  try {
+    // Run auto-seed before starting the server
+    try {
+      const { autoSeed } = require('./prisma/auto-seed.ts');
+      await autoSeed();
+    } catch (seedError) {
+      console.warn('\n⚠️  Auto-seed warning:', seedError.message);
+      console.log('Continuing with server startup...\n');
+    }
+
+    app.listen(PORT, () => {
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`🚀 PIC APP BACKEND - STARTED`);
+      console.log(`${'='.repeat(70)}`);
+      console.log(`\n📊 Configuration:`);
+      console.log(`   Port:        ${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   Database:    ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'pic_app'}`);
+      console.log(`   Frontend:    ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+      console.log(`\n🔗 Test Endpoints:`);
+      console.log(`   GET  http://localhost:${PORT}/health`);
+      console.log(`   GET  http://localhost:${PORT}/api`);
+      console.log(`\n📋 Main API Routes:`);
+      console.log(`   POST /api/admin/auth/init-admin`);
+      console.log(`   POST /api/admin/auth/login`);
+      console.log(`   GET  /api/admin/auth/status`);
+      console.log(`   GET  /api/admin/training`);
+      console.log(`   POST /api/admin/links`);
+      console.log(`\n${'='.repeat(70)}`);
+      console.log('✅ Ready to receive requests!\n');
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;
