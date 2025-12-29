@@ -14,9 +14,14 @@ interface RegistrationLink {
   trainingProgramId: number;
   trainingClassId: number;
   personnelTypeId: number;
+  picId?: number;
+  marketingId?: number;
+  programTypeId?: number;
   createdByAdminId: number;
   maxRegistrations: number;
   currentRegistrations: number;
+  tanggalPelaksanaan?: string;
+  tanggalSelesai?: string;
   expiryDate: string;
   waGroupLink?: string;
   status: "active" | "expired" | "filled";
@@ -35,6 +40,18 @@ interface RegistrationLink {
     level: string;
   };
   personnelType?: {
+    id: number;
+    name: string;
+  };
+  pic?: {
+    id: number;
+    name: string;
+  };
+  marketing?: {
+    id: number;
+    name: string;
+  };
+  programType?: {
     id: number;
     name: string;
   };
@@ -57,16 +74,28 @@ interface TrainingProgram {
   description?: string;
 }
 
+interface MasterData {
+  pic: Array<{ id: string; name: string }>;
+  marketing: Array<{ id: string; name: string }>;
+  programTypes: Array<{ id: string; name: string }>;
+}
+
 interface MasterDataLoadingState {
   bidangs: boolean;
   kelas: boolean;
   programs: boolean;
+  pic: boolean;
+  marketing: boolean;
+  programTypes: boolean;
 }
 
 interface MasterDataError {
   bidangs: string | null;
   kelas: string | null;
   programs: string | null;
+  pic: string | null;
+  marketing: string | null;
+  programTypes: string | null;
 }
 
 export default function LinksPage() {
@@ -75,6 +104,11 @@ export default function LinksPage() {
   const [bidangs, setBidangs] = useState<Bidang[]>([]);
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [masterData, setMasterData] = useState<MasterData>({
+    pic: [],
+    marketing: [],
+    programTypes: [],
+  });
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState<RegistrationLink | null>(
@@ -91,17 +125,28 @@ export default function LinksPage() {
       bidangs: false,
       kelas: false,
       programs: false,
+      pic: false,
+      marketing: false,
+      programTypes: false,
     });
   const [masterDataError, setMasterDataError] = useState<MasterDataError>({
     bidangs: null,
     kelas: null,
     programs: null,
+    pic: null,
+    marketing: null,
+    programTypes: null,
   });
 
   const [formData, setFormData] = useState({
     trainingProgramId: "",
     trainingClassId: "",
     personnelTypeId: "",
+    picId: "",
+    marketingId: "",
+    programTypeId: "",
+    tanggalPelaksanaan: "",
+    tanggalSelesai: "",
     maxRegistrations: 25,
     expiryDate: "",
     waGroupLink: "",
@@ -211,6 +256,84 @@ export default function LinksPage() {
       } finally {
         setMasterDataLoading((prev) => ({ ...prev, programs: false }));
       }
+
+      // Fetch PIC
+      try {
+        setMasterDataLoading((prev) => ({ ...prev, pic: true }));
+        setMasterDataError((prev) => ({ ...prev, pic: null }));
+        const picRes = await axios.get(
+          `${API_BASE_URL}/api/admin/master-data/pic`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("PIC response:", picRes.data);
+        setMasterData((prev) => ({
+          ...prev,
+          pic: picRes.data.data || [],
+        }));
+      } catch (error: any) {
+        console.error("Failed to fetch PIC:", error);
+        const errorMsg =
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to load PIC data";
+        setMasterDataError((prev) => ({ ...prev, pic: errorMsg }));
+      } finally {
+        setMasterDataLoading((prev) => ({ ...prev, pic: false }));
+      }
+
+      // Fetch Marketing
+      try {
+        setMasterDataLoading((prev) => ({ ...prev, marketing: true }));
+        setMasterDataError((prev) => ({ ...prev, marketing: null }));
+        const marketingRes = await axios.get(
+          `${API_BASE_URL}/api/admin/master-data/marketing`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("Marketing response:", marketingRes.data);
+        setMasterData((prev) => ({
+          ...prev,
+          marketing: marketingRes.data.data || [],
+        }));
+      } catch (error: any) {
+        console.error("Failed to fetch marketing:", error);
+        const errorMsg =
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to load marketing data";
+        setMasterDataError((prev) => ({ ...prev, marketing: errorMsg }));
+      } finally {
+        setMasterDataLoading((prev) => ({ ...prev, marketing: false }));
+      }
+
+      // Fetch Program Types
+      try {
+        setMasterDataLoading((prev) => ({ ...prev, programTypes: true }));
+        setMasterDataError((prev) => ({ ...prev, programTypes: null }));
+        const programTypesRes = await axios.get(
+          `${API_BASE_URL}/api/admin/master-data/program_types`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("Program Types response:", programTypesRes.data);
+        setMasterData((prev) => ({
+          ...prev,
+          programTypes: programTypesRes.data.data || [],
+        }));
+      } catch (error: any) {
+        console.error("Failed to fetch program types:", error);
+        const errorMsg =
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to load program types data";
+        setMasterDataError((prev) => ({ ...prev, programTypes: errorMsg }));
+      } finally {
+        setMasterDataLoading((prev) => ({ ...prev, programTypes: false }));
+      }
     } catch (error) {
       console.error("Unexpected error in fetchMasterData:", error);
     }
@@ -263,6 +386,11 @@ export default function LinksPage() {
         trainingProgramId: parseInt(formData.trainingProgramId),
         trainingClassId: parseInt(formData.trainingClassId),
         personnelTypeId: parseInt(formData.personnelTypeId),
+        picId: formData.picId ? parseInt(formData.picId) : undefined,
+        marketingId: formData.marketingId ? parseInt(formData.marketingId) : undefined,
+        programTypeId: formData.programTypeId ? parseInt(formData.programTypeId) : undefined,
+        tanggalPelaksanaan: formData.tanggalPelaksanaan || undefined,
+        tanggalSelesai: formData.tanggalSelesai || undefined,
         maxRegistrations: formData.maxRegistrations,
         expiryDate: formData.expiryDate,
         waGroupLink: formData.waGroupLink || undefined,
@@ -291,6 +419,11 @@ export default function LinksPage() {
         trainingProgramId: "",
         trainingClassId: "",
         personnelTypeId: "",
+        picId: "",
+        marketingId: "",
+        programTypeId: "",
+        tanggalPelaksanaan: "",
+        tanggalSelesai: "",
         maxRegistrations: 25,
         expiryDate: "",
         waGroupLink: "",
@@ -358,7 +491,14 @@ export default function LinksPage() {
   const handleOpenCreateModal = () => {
     console.log("Opening create modal");
     // Reset errors when opening modal
-    setMasterDataError({ bidangs: null, kelas: null, programs: null });
+    setMasterDataError({
+      bidangs: null,
+      kelas: null,
+      programs: null,
+      pic: null,
+      marketing: null,
+      programTypes: null,
+    });
     setShowCreateModal(true);
   };
 
@@ -396,28 +536,43 @@ export default function LinksPage() {
           </button>
         </div>
 
-        {/* Links Table */}
+        {/* Links Table with Horizontal Scroll */}
         <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#2d3e52]">
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Training
                   </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Class
                   </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                    PIC
+                  </th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                    Marketing
+                  </th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                    Program
+                  </th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                    Tgl Pelaksanaan
+                  </th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                    Tgl Selesai
+                  </th>
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Registrasi
                   </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Exp Date
                   </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Status
                   </th>
-                  <th className="text-center px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase">
+                  <th className="text-center px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
                     Action
                   </th>
                 </tr>
@@ -426,7 +581,7 @@ export default function LinksPage() {
                 {links.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={11}
                       className="text-center px-4 py-8 text-[#8fa3b8]"
                     >
                       Belum ada link pendaftaran. Buat link baru sekarang!
@@ -438,13 +593,36 @@ export default function LinksPage() {
                       key={link.id}
                       className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors"
                     >
-                      <td className="px-4 py-3 text-white font-medium">
+                      <td className="px-4 py-3 text-white font-medium whitespace-nowrap">
                         {link.trainingProgram?.name || "-"}
                       </td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
                         {link.trainingClass?.name || "-"}
                       </td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                        {link.pic?.name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                        {link.marketing?.name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                        {link.programType?.name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                        {link.tanggalPelaksanaan
+                          ? new Date(link.tanggalPelaksanaan).toLocaleDateString(
+                              "id-ID"
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                        {link.tanggalSelesai
+                          ? new Date(link.tanggalSelesai).toLocaleDateString(
+                              "id-ID"
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
                         <span className="text-blue-400 font-medium">
                           {link.currentRegistrations}
                         </span>
@@ -452,14 +630,14 @@ export default function LinksPage() {
                           /{link.maxRegistrations}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#8fa3b8]">
+                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
                         {link.expiryDate
                           ? new Date(link.expiryDate).toLocaleDateString(
                               "id-ID"
                             )
                           : "-"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span
                           className={`inline-block px-3 py-1 rounded text-xs font-medium ${
                             getStatusColor(link.status)
@@ -470,7 +648,7 @@ export default function LinksPage() {
                           {link.status === "filled" && "📦 Filled"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-3">
                           <button
                             onClick={() => copyToClipboard(link.uniqueToken)}
@@ -507,7 +685,7 @@ export default function LinksPage() {
         {/* Create Link Modal - Matching the screenshot form */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">
                   Tambah Link Pendaftaran
@@ -637,6 +815,149 @@ export default function LinksPage() {
                   </select>
                 </div>
 
+                {/* PIC */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    PIC (Person In Charge){" "}
+                    {masterDataLoading.pic && (
+                      <span className="text-xs text-gray-500">
+                        (loading...)
+                      </span>
+                    )}
+                  </label>
+                  {masterDataError.pic && (
+                    <p className="text-red-500 text-xs mb-2">
+                      ⚠️ {masterDataError.pic}
+                    </p>
+                  )}
+                  <select
+                    value={formData.picId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        picId: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    disabled={isSubmitting || masterDataLoading.pic}
+                  >
+                    <option value="">-- Pilih PIC --</option>
+                    {masterData.pic.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Marketing */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Marketing{" "}
+                    {masterDataLoading.marketing && (
+                      <span className="text-xs text-gray-500">
+                        (loading...)
+                      </span>
+                    )}
+                  </label>
+                  {masterDataError.marketing && (
+                    <p className="text-red-500 text-xs mb-2">
+                      ⚠️ {masterDataError.marketing}
+                    </p>
+                  )}
+                  <select
+                    value={formData.marketingId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        marketingId: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    disabled={isSubmitting || masterDataLoading.marketing}
+                  >
+                    <option value="">-- Pilih Marketing --</option>
+                    {masterData.marketing.map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Program Type */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Tipe Program{" "}
+                    {masterDataLoading.programTypes && (
+                      <span className="text-xs text-gray-500">
+                        (loading...)
+                      </span>
+                    )}
+                  </label>
+                  {masterDataError.programTypes && (
+                    <p className="text-red-500 text-xs mb-2">
+                      ⚠️ {masterDataError.programTypes}
+                    </p>
+                  )}
+                  <select
+                    value={formData.programTypeId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        programTypeId: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
+                    disabled={isSubmitting || masterDataLoading.programTypes}
+                  >
+                    <option value="">-- Pilih Tipe Program --</option>
+                    {masterData.programTypes.map((pt: any) => (
+                      <option key={pt.id} value={pt.id}>
+                        {pt.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Tanggal Pelaksanaan */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Tanggal Pelaksanaan
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.tanggalPelaksanaan}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tanggalPelaksanaan: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Tanggal Selesai */}
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Tanggal Selesai
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.tanggalSelesai}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tanggalSelesai: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
                 {/* Max Registrations */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -755,7 +1076,7 @@ export default function LinksPage() {
         {/* Link Details Modal */}
         {selectedLink && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] max-w-md w-full">
+            <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-white">Detail Link</h2>
                 <button
@@ -786,6 +1107,44 @@ export default function LinksPage() {
                   </p>
                 </div>
                 <div>
+                  <p className="text-[#8fa3b8] text-sm">PIC</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.pic?.name || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#8fa3b8] text-sm">Marketing</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.marketing?.name || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#8fa3b8] text-sm">Tipe Program</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.programType?.name || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#8fa3b8] text-sm">Tanggal Pelaksanaan</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.tanggalPelaksanaan
+                      ? new Date(selectedLink.tanggalPelaksanaan).toLocaleDateString(
+                          "id-ID"
+                        )
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#8fa3b8] text-sm">Tanggal Selesai</p>
+                  <p className="text-white font-semibold">
+                    {selectedLink.tanggalSelesai
+                      ? new Date(selectedLink.tanggalSelesai).toLocaleDateString(
+                          "id-ID"
+                        )
+                      : "-"}
+                  </p>
+                </div>
+                <div>
                   <p className="text-[#8fa3b8] text-sm">Registration URL</p>
                   <div className="flex items-center gap-2 mt-2">
                     <input
@@ -804,16 +1163,6 @@ export default function LinksPage() {
                       📋
                     </button>
                   </div>
-                </div>
-                <div>
-                  <p className="text-[#8fa3b8] text-sm">QR Code</p>
-                  {selectedLink.qr_code_url && (
-                    <img
-                      src={selectedLink.qr_code_url}
-                      alt="QR Code"
-                      className="w-32 h-32 mt-2"
-                    />
-                  )}
                 </div>
                 <div>
                   <p className="text-[#8fa3b8] text-sm">Max Registrations</p>
