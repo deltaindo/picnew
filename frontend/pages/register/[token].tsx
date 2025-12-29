@@ -7,20 +7,22 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
 interface RegistrationLink {
-  id: string;
+  id: number;
+  uniqueToken: string;
   training_name: string;
-  training_id: string;
+  training_id: number;
   class_level: string;
+  kelas_id: number;
   start_date: string;
   end_date: string;
   location: string;
   max_registrations: number;
   current_registrations: number;
-  whatsapp_link: string;
+  whatsapp_link?: string;
   required_documents?: Array<{
-    id: string;
-    name: string;
-    description: string;
+    id: number;
+    documentType: string;
+    displayName: string;
   }>;
   provinces?: Array<{
     id: number;
@@ -42,7 +44,7 @@ interface RegistrationLink {
   trainingClasses?: Array<{
     id: number;
     name: string;
-    level?: number;
+    level?: string;
   }>;
 }
 
@@ -101,11 +103,11 @@ export default function RegisterPage() {
   const [subdistricts, setSubdistricts] = useState<CascadingLocation[]>([]);
   const [villages, setVillages] = useState<CascadingLocation[]>([]);
 
-  // Cascading training states - CORRECTED
+  // Cascading training states
   const [bidangOptions, setBidangOptions] = useState<{ id: number; name: string }[]>([]);
   const [allTrainingPrograms, setAllTrainingPrograms] = useState<any[]>([]);
   const [filteredTrainingPrograms, setFilteredTrainingPrograms] = useState<any[]>([]);
-  const [trainingClassOptions, setTrainingClassOptions] = useState<{ id: number; name: string; level?: number }[]>([]);
+  const [trainingClassOptions, setTrainingClassOptions] = useState<{ id: number; name: string; level?: string }[]>([]);
 
   useEffect(() => {
     // Check saved theme preference
@@ -127,7 +129,8 @@ export default function RegisterPage() {
   const fetchRegistrationLink = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/public/links/${token}`);
+      // FIXED: Use correct endpoint with /public/validate/
+      const response = await axios.get(`${API_BASE_URL}/api/public/links/public/validate/${token}`);
       const data = response.data.data;
       
       // Set dropdown options from link response
@@ -151,7 +154,7 @@ export default function RegisterPage() {
     }
   };
 
-  // CORRECTED: Filter training programs by selected bidang
+  // Filter training programs by selected bidang
   const handleBidangChange = (bidangId: string) => {
     setFormData({ ...formData, bidang_id: bidangId, training_id: '', kelas_id: '' });
     
@@ -163,12 +166,12 @@ export default function RegisterPage() {
     }
   };
 
-  // TrainingProgram selected - no filtering needed for TrainingClass (it's standalone)
+  // Training program selected
   const handleTrainingProgramChange = (programId: string) => {
     setFormData({ ...formData, training_id: programId, kelas_id: '' });
   };
 
-  // TrainingClass selected
+  // Training class selected
   const handleTrainingClassChange = (classId: string) => {
     setFormData({ ...formData, kelas_id: classId });
   };
@@ -225,7 +228,7 @@ export default function RegisterPage() {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Handle cascading dropdowns for LOCATION only (training cascading handled separately)
+    // Handle cascading dropdowns for LOCATION only
     if (name === 'province_id') fetchDistricts(value);
     if (name === 'district_id') fetchSubdistricts(value);
     if (name === 'subdistrict_id') fetchVillages(value);
@@ -250,27 +253,37 @@ export default function RegisterPage() {
       setSubmitting(true);
       setError('');
 
-      // Create FormData for file upload
-      const submitData = new FormData();
-      submitData.append('link_id', link.id);
-      
-      // Add all form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value) submitData.append(key, value);
-      });
-
-      // Add files
-      Object.entries(documents).forEach(([key, file]) => {
-        if (file) {
-          submitData.append(`files[${key}]`, file);
-        }
-      });
+      // FIXED: Use token instead of link_id, send as JSON not FormData
+      const submitData = {
+        token: link.uniqueToken,
+        nama: formData.nama,
+        ktp: formData.ktp,
+        tempat_lahir: formData.tempat_lahir,
+        tanggal_lahir: formData.tanggal_lahir,
+        pendidikan: formData.pendidikan,
+        nama_sekolah: formData.nama_sekolah,
+        no_ijazah: formData.no_ijazah,
+        tgl_ijazah: formData.tgl_ijazah,
+        province_id: formData.province_id,
+        district_id: formData.district_id,
+        subdistrict_id: formData.subdistrict_id,
+        village_id: formData.village_id,
+        alamat_rumah: formData.alamat_rumah,
+        golongan_darah: formData.golongan_darah,
+        wa: formData.wa,
+        email: formData.email,
+        instansi: formData.instansi,
+        sektor: formData.sektor,
+        alamat_perusahaan: formData.alamat_perusahaan,
+        jabatan: formData.jabatan,
+        tlp_kantor: formData.tlp_kantor,
+      };
 
       const response = await axios.post(
         `${API_BASE_URL}/api/public/registrations`,
         submitData,
         {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { 'Content-Type': 'application/json' },
         }
       );
 
@@ -390,30 +403,6 @@ export default function RegisterPage() {
             <div>
               <p className={`text-sm ${
                 isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
-              }`}>Lokasi</p>
-              <p className={`font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>{link.location}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
-              }`}>Tanggal Mulai</p>
-              <p className={`font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>{new Date(link.start_date).toLocaleDateString('id-ID')}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
-              }`}>Tanggal Selesai</p>
-              <p className={`font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>{new Date(link.end_date).toLocaleDateString('id-ID')}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
               }`}>Kapasitas Pendaftar</p>
               <p className={`font-semibold ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
@@ -474,7 +463,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          {/* Step 1: Training Selection - CORRECTED */}
+          {/* Step 1: Training Selection */}
           {currentStep === 1 && (
             <div className="space-y-4">
               <h3 className={`text-lg font-semibold mb-4 ${
@@ -976,58 +965,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 5: Documents */}
-          {currentStep === 5 && requiredDocuments.length > 0 && (
-            <div>
-              <h3 className={`text-lg font-semibold mb-4 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>📄 Dokumen yang Diperlukan</h3>
-              <p className={`text-sm mb-4 ${
-                isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
-              }`}>Format: PDF, JPG, PNG | Ukuran maksimal: 2MB</p>
-              <div className="space-y-3">
-                {requiredDocuments.map((doc: any) => (
-                  <div key={doc.id} className={`p-4 rounded-lg border ${
-                    isDarkMode
-                      ? 'bg-[#1a2332] border-[#2d3e52]'
-                      : 'bg-gray-50 border-gray-300'
-                  }`}>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert('File terlalu besar (max 2MB)');
-                              return;
-                            }
-                            setDocuments({ ...documents, [doc.id]: file });
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <span className="text-xl">📎</span>
-                      <div className="flex-1">
-                        <p className={`font-medium ${
-                          isDarkMode ? 'text-white' : 'text-gray-900'
-                        }`}>{doc.name}</p>
-                        <p className={`text-sm ${
-                          isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'
-                        }`}>
-                          {documents[doc.id] ? documents[doc.id]?.name : 'Klik untuk upload'}
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 5 (if no docs): Review & Submit */}
-          {currentStep === 5 && requiredDocuments.length === 0 && (
+          {/* Step 5: Review */}
+          {currentStep === 5 && (
             <div>
               <h3 className={`text-lg font-semibold mb-4 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
@@ -1039,11 +978,6 @@ export default function RegisterPage() {
                   <span className={`font-medium ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>Nama:</span> {formData.nama}
-                </p>
-                <p className={isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'}>
-                  <span className={`font-medium ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>KTP:</span> {formData.ktp}
                 </p>
                 <p className={isDarkMode ? 'text-[#8fa3b8]' : 'text-gray-600'}>
                   <span className={`font-medium ${
