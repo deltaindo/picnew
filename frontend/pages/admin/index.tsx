@@ -8,18 +8,30 @@ interface DashboardStats {
   activeLinks: number;
   totalRegistrations: number;
   pendingDocuments: number;
-  certificatesExpiring: number;
+  adminName: string;
+}
+
+interface Link {
+  id: string;
+  name: string;
+  tanggal_pelaksanaan: string;
+  tanggal_selesai: string;
+  program: string;
+  status: string;
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
-    activeLinks: 30,
-    totalRegistrations: 156,
-    pendingDocuments: 24,
-    certificatesExpiring: 3,
+    activeLinks: 0,
+    totalRegistrations: 0,
+    pendingDocuments: 0,
+    adminName: 'Admin',
   });
+  const [links, setLinks] = useState<Link[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -27,8 +39,119 @@ export default function AdminDashboard() {
       router.push('/admin/login');
       return;
     }
-    setLoading(false);
+
+    const fetchDashboardData = async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+        // Fetch stats
+        const statsResponse = await fetch(`${baseUrl}/api/dashboard/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats({
+            activeLinks: statsData.activeLinks || 0,
+            totalRegistrations: statsData.totalRegistrations || 0,
+            pendingDocuments: statsData.pendingDocuments || 0,
+            adminName: statsData.adminName || 'Admin',
+          });
+        }
+
+        // Fetch links
+        const linksResponse = await fetch(`${baseUrl}/api/links?limit=4`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (linksResponse.ok) {
+          const linksData = await linksResponse.json();
+          setLinks(linksData.data || []);
+        }
+
+        // Fetch activity logs
+        const logsResponse = await fetch(`${baseUrl}/api/activity-logs?limit=5`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json();
+          setActivityLogs(logsData.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [router]);
+
+  // Function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
+
+  // Function to format activity date
+  const formatActivityDate = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // Get days for calendar
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const getDayArray = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    const days = [];
+
+    // Add empty slots for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+
+    // Add days of month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    return days;
+  };
+
+  const monthYear = currentDate.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
 
   if (loading) {
     return (
@@ -52,11 +175,12 @@ export default function AdminDashboard() {
           <div className="md:col-span-2 bg-[#233347] rounded-xl p-6 border border-[#2d3e52] hover:border-blue-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Hello Aryo, 👋</h1>
-                <div className="flex items-center gap-2 text-[#8fa3b8]">
-                  <span>⚠️</span>
-                  <span className="text-sm">3 certificates are expiring today</span>
-                </div>
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  Hello {stats.adminName}, 👋
+                </h1>
+                <p className="text-[#8fa3b8] text-sm">
+                  Welcome to Delta Training Platform Dashboard
+                </p>
               </div>
               <div className="hidden md:block w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg"></div>
             </div>
@@ -64,23 +188,27 @@ export default function AdminDashboard() {
 
           {/* Calendar Card */}
           <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] hover:border-blue-600 transition-colors">
-            <h3 className="text-white font-semibold mb-4 text-sm">JULY 2025</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">
+              {monthYear.toUpperCase()}
+            </h3>
             <div className="grid grid-cols-7 gap-2 text-xs">
-              {['Sun', 'Mon', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div key={day} className="text-[#8fa3b8] font-medium text-center py-1">
                   {day}
                 </div>
               ))}
-              {[13, 14, 15, 16, 17, 18].map((day) => (
+              {getDayArray().map((day, idx) => (
                 <div
-                  key={day}
+                  key={idx}
                   className={`text-center py-2 rounded text-xs font-medium ${
-                    day === 15
+                    day === currentDate.getDate()
                       ? 'bg-blue-600 text-white font-bold'
-                      : 'text-[#8fa3b8] hover:bg-[#2d3e52] cursor-pointer'
+                      : day
+                      ? 'text-[#8fa3b8] hover:bg-[#2d3e52] cursor-pointer'
+                      : 'text-[#1a2332]'
                   }`}
                 >
-                  {day}
+                  {day || ''}
                 </div>
               ))}
             </div>
@@ -88,7 +216,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-blue-600 transition-colors">
             <div className="flex items-center justify-between">
               <div>
@@ -124,18 +252,6 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-
-          <div className="bg-[#233347] rounded-xl p-5 border border-[#2d3e52] hover:border-red-600 transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#8fa3b8] text-xs font-medium uppercase">Expiring Soon</p>
-                <p className="text-white text-2xl font-bold mt-2">{stats.certificatesExpiring}</p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-red-500 bg-opacity-20 flex items-center justify-center text-xl">
-                📅
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Charts Row */}
@@ -158,7 +274,7 @@ export default function AdminDashboard() {
                     stroke="#2d3e52"
                     strokeWidth="12"
                   />
-                  {/* Active links circle (75% = 30 active out of 40) */}
+                  {/* Active links circle */}
                   <circle
                     cx="60"
                     cy="60"
@@ -166,12 +282,12 @@ export default function AdminDashboard() {
                     fill="none"
                     stroke="#2563eb"
                     strokeWidth="12"
-                    strokeDasharray="106 141"
+                    strokeDasharray={`${stats.activeLinks * 1.4} 141`}
                     strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-white text-3xl font-bold">30</p>
+                  <p className="text-white text-3xl font-bold">{stats.activeLinks}</p>
                   <p className="text-[#8fa3b8] text-xs">Link</p>
                 </div>
               </div>
@@ -195,18 +311,20 @@ export default function AdminDashboard() {
               <button className="text-[#8fa3b8] hover:text-white text-xl transition-colors" title="More options">⋯</button>
             </div>
             <div className="space-y-4 max-h-56 overflow-y-auto">
-              <div className="pb-4 border-b border-[#2d3e52]">
-                <p className="text-white text-sm font-medium">Link pendaftaran baru telah di buat</p>
-                <p className="text-[#8fa3b8] text-xs mt-1">Wednesday</p>
-              </div>
-              <div className="pb-4 border-b border-[#2d3e52]">
-                <p className="text-white text-sm font-medium">Link pendaftaran "K3 LISTRIK" telah di tambahkan</p>
-                <p className="text-[#8fa3b8] text-xs mt-1">April, 18</p>
-              </div>
-              <div className="pb-4 border-b border-[#2d3e52]">
-                <p className="text-white text-sm font-medium">Admin baru telah di tambahkan</p>
-                <p className="text-[#8fa3b8] text-xs mt-1">January, 10</p>
-              </div>
+              {activityLogs.length > 0 ? (
+                activityLogs.map((log, idx) => (
+                  <div key={idx} className="pb-4 border-b border-[#2d3e52]">
+                    <p className="text-white text-sm font-medium">{log.description || log.message}</p>
+                    <p className="text-[#8fa3b8] text-xs mt-1">
+                      {formatActivityDate(log.created_at || log.timestamp)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-[#8fa3b8] text-sm">No activity logs yet</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -216,7 +334,7 @@ export default function AdminDashboard() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
             <div>
               <h3 className="text-white font-semibold text-lg">All Form</h3>
-              <p className="text-[#8fa3b8] text-sm mt-1">List of clients</p>
+              <p className="text-[#8fa3b8] text-sm mt-1">List of training links</p>
             </div>
             <div className="flex gap-4 w-full md:w-auto">
               <div className="relative flex-1 md:flex-none">
@@ -249,34 +367,41 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { form: 'TKBT 2', date1: '15-07-2025', date2: '15-07-2025', program: 'Reguler', status: 'Reminder' },
-                  { form: 'K3 PAA', date1: '15-07-2025', date2: '15-07-2025', program: 'Inhouse', status: 'Reminder' },
-                  { form: 'AHLI K3 UMUM', date1: '15-07-2025', date2: '15-07-2025', program: 'Inhouse', status: 'Reminder' },
-                  { form: 'K3 LISTRIK', date1: '15-07-2025', date2: '15-07-2025', program: 'Inhouse', status: 'Reminder' },
-                ].map((row, idx) => (
-                  <tr key={idx} className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors">
-                    <td className="px-4 py-3 text-white font-medium">{row.form}</td>
-                    <td className="px-4 py-3 text-[#8fa3b8]">{row.date1}</td>
-                    <td className="px-4 py-3 text-[#8fa3b8]">{row.date2}</td>
-                    <td className="px-4 py-3 text-[#8fa3b8]">{row.program}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block px-3 py-1 bg-yellow-500 bg-opacity-20 text-yellow-400 rounded text-xs font-medium">
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button className="text-[#8fa3b8] hover:text-blue-400 transition-colors" title="Copy link">
-                        📋
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button className="text-[#8fa3b8] hover:text-white transition-colors" title="Settings">
-                        ⚙️
-                      </button>
+                {links.length > 0 ? (
+                  links.map((row, idx) => (
+                    <tr key={idx} className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors">
+                      <td className="px-4 py-3 text-white font-medium">{row.name}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">{formatDate(row.tanggal_pelaksanaan)}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">{formatDate(row.tanggal_selesai)}</td>
+                      <td className="px-4 py-3 text-[#8fa3b8]">{row.program || '-'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-3 py-1 rounded text-xs font-medium ${
+                          row.status === 'active' || row.status === 'Active'
+                            ? 'bg-green-500 bg-opacity-20 text-green-400'
+                            : 'bg-yellow-500 bg-opacity-20 text-yellow-400'
+                        }`}>
+                          {row.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button className="text-[#8fa3b8] hover:text-blue-400 transition-colors" title="Copy link">
+                          📋
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button className="text-[#8fa3b8] hover:text-white transition-colors" title="Settings">
+                          ⚙️
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center">
+                      <p className="text-[#8fa3b8] text-sm">No training links found</p>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
