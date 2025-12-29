@@ -25,6 +25,13 @@ import {
   updateUser,
   deleteUser,
 } from '../controllers/usersController';
+import {
+  getLinks,
+  getLinkById,
+  createLink,
+  updateLink,
+  deleteLink,
+} from '../controllers/linksController';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -45,6 +52,13 @@ router.get('/users', authMiddleware, getUsers);
 router.post('/users', authMiddleware, createUser);
 router.put('/users/:id', authMiddleware, updateUser);
 router.delete('/users/:id', authMiddleware, deleteUser);
+
+// ============ REGISTRATION LINKS ============
+router.get('/links', authMiddleware, getLinks);
+router.get('/links/:id', authMiddleware, getLinkById);
+router.post('/links', authMiddleware, createLink);
+router.put('/links/:id', authMiddleware, updateLink);
+router.delete('/links/:id', authMiddleware, deleteLink);
 
 // ============ MASTER DATA ROUTES ============
 // All master data endpoints grouped under /master-data/:type
