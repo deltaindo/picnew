@@ -61,7 +61,11 @@ services:
       dockerfile: Dockerfile.dev
     container_name: pic_frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+      # FIX: Use internal Docker DNS 'backend' instead of localhost
+      # and remove /api from the end (backend routes already have /api prefix)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:5000}
+      # Memory optimization for Node.js
+      NODE_OPTIONS: --max-old-space-size=2048
     ports:
       - "3000:3000"
     depends_on:
@@ -72,6 +76,9 @@ services:
       - /app/.next
     networks:
       - pic_network
+    # Memory limits
+    mem_limit: 3gb
+    memswap_limit: 3gb
 
 volumes:
   postgres_data:
