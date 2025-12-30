@@ -6,7 +6,7 @@ import AdminLayout from "../../components/AdminLayout";
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 interface RegistrationLink {
   id: number;
@@ -168,7 +168,7 @@ export default function LinksPage() {
       setLoading(true);
       const token = localStorage.getItem("token");
       console.log("Fetching links with API_BASE_URL:", API_BASE_URL);
-      const response = await axios.get(`${API_BASE_URL}/api/admin/links`, {
+      const response = await axios.get(`${API_BASE_URL}/admin/links`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Links response:", response.data);
@@ -190,7 +190,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, bidangs: true }));
         setMasterDataError((prev) => ({ ...prev, bidangs: null }));
         const bidangsRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/bidang`,
+          `${API_BASE_URL}/admin/master-data/bidang`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -214,7 +214,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, kelas: true }));
         setMasterDataError((prev) => ({ ...prev, kelas: null }));
         const kelasRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/classes`,
+          `${API_BASE_URL}/admin/master-data/classes`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -238,7 +238,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, programs: true }));
         setMasterDataError((prev) => ({ ...prev, programs: null }));
         const programsRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/training_programs`,
+          `${API_BASE_URL}/admin/master-data/training_programs`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -262,7 +262,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, pic: true }));
         setMasterDataError((prev) => ({ ...prev, pic: null }));
         const picRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/pic`,
+          `${API_BASE_URL}/admin/master-data/pic`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -288,7 +288,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, marketing: true }));
         setMasterDataError((prev) => ({ ...prev, marketing: null }));
         const marketingRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/marketing`,
+          `${API_BASE_URL}/admin/master-data/marketing`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -314,7 +314,7 @@ export default function LinksPage() {
         setMasterDataLoading((prev) => ({ ...prev, programTypes: true }));
         setMasterDataError((prev) => ({ ...prev, programTypes: null }));
         const programTypesRes = await axios.get(
-          `${API_BASE_URL}/api/admin/master-data/program_types`,
+          `${API_BASE_URL}/admin/master-data/program_types`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -403,10 +403,10 @@ export default function LinksPage() {
       );
 
       console.log("Creating link with payload:", payload);
-      console.log("API URL:", `${API_BASE_URL}/api/admin/links`);
+      console.log("API URL:", `${API_BASE_URL}/admin/links`);
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/admin/links`,
+        `${API_BASE_URL}/admin/links`,
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -447,7 +447,7 @@ export default function LinksPage() {
       const token = localStorage.getItem("token");
 
       const response = await axios.delete(
-        `${API_BASE_URL}/api/admin/links/${id}`,
+        `${API_BASE_URL}/admin/links/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
