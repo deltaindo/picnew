@@ -6,7 +6,7 @@ import AdminLayout from "../../components/AdminLayout";
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 interface RegistrationLink {
   id: number;
@@ -537,149 +537,141 @@ export default function LinksPage() {
         </div>
 
         {/* Links Table with Horizontal Scroll */}
-        <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52]">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#2d3e52]">
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Training
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Class
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    PIC
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Marketing
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Program
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Tgl Pelaksanaan
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Tgl Selesai
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Registrasi
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Exp Date
-                  </th>
-                  <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Status
-                  </th>
-                  <th className="text-center px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
-                    Action
-                  </th>
+        <div className="bg-[#233347] rounded-xl p-6 border border-[#2d3e52] overflow-x-auto">
+          <table className="w-full text-sm min-w-max">
+            <thead>
+              <tr className="border-b border-[#2d3e52]">
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Pelatihan
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  PIC
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Marketing
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Program
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Tgl Pelaksanaan
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Tgl Selesai
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Registrasi
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Exp Date
+                </th>
+                <th className="text-left px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Status
+                </th>
+                <th className="text-center px-4 py-3 text-[#8fa3b8] font-medium text-xs uppercase whitespace-nowrap">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {links.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={10}
+                    className="text-center px-4 py-8 text-[#8fa3b8]"
+                  >
+                    Belum ada link pendaftaran. Buat link baru sekarang!
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {links.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={11}
-                      className="text-center px-4 py-8 text-[#8fa3b8]"
-                    >
-                      Belum ada link pendaftaran. Buat link baru sekarang!
+              ) : (
+                links.map((link) => (
+                  <tr
+                    key={link.id}
+                    className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors"
+                  >
+                    <td className="px-4 py-3 text-white font-medium whitespace-nowrap">
+                      {link.trainingProgram?.name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.pic?.name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.marketing?.name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.programType?.name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.tanggalPelaksanaan
+                        ? new Date(link.tanggalPelaksanaan).toLocaleDateString(
+                            "id-ID"
+                          )
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.tanggalSelesai
+                        ? new Date(link.tanggalSelesai).toLocaleDateString(
+                            "id-ID"
+                          )
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      <span className="text-blue-400 font-medium">
+                        {link.currentRegistrations}
+                      </span>
+                      <span className="text-[#8fa3b8]">
+                        /{link.maxRegistrations}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
+                      {link.expiryDate
+                        ? new Date(link.expiryDate).toLocaleDateString(
+                            "id-ID"
+                          )
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`inline-block px-3 py-1 rounded text-xs font-medium ${
+                          getStatusColor(link.status)
+                        }`}
+                      >
+                        {link.status === "active" && "✓ Active"}
+                        {link.status === "expired" && "✗ Expired"}
+                        {link.status === "filled" && "📦 Filled"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => copyToClipboard(link.uniqueToken)}
+                          title="Copy link"
+                          className="text-[#8fa3b8] hover:text-blue-400 transition-colors text-lg"
+                        >
+                          📋
+                        </button>
+                        <button
+                          onClick={() => setSelectedLink(link)}
+                          title="View details"
+                          className="text-[#8fa3b8] hover:text-green-400 transition-colors text-lg"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(link.id)}
+                          title="Delete link"
+                          className="text-[#8fa3b8] hover:text-red-400 transition-colors text-lg"
+                          disabled={isSubmitting}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  links.map((link) => (
-                    <tr
-                      key={link.id}
-                      className="border-b border-[#2d3e52] hover:bg-[#1a2332] transition-colors"
-                    >
-                      <td className="px-4 py-3 text-white font-medium whitespace-nowrap">
-                        {link.trainingProgram?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.trainingClass?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.pic?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.marketing?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.programType?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.tanggalPelaksanaan
-                          ? new Date(link.tanggalPelaksanaan).toLocaleDateString(
-                              "id-ID"
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.tanggalSelesai
-                          ? new Date(link.tanggalSelesai).toLocaleDateString(
-                              "id-ID"
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        <span className="text-blue-400 font-medium">
-                          {link.currentRegistrations}
-                        </span>
-                        <span className="text-[#8fa3b8]">
-                          /{link.maxRegistrations}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[#8fa3b8] whitespace-nowrap">
-                        {link.expiryDate
-                          ? new Date(link.expiryDate).toLocaleDateString(
-                              "id-ID"
-                            )
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-3 py-1 rounded text-xs font-medium ${
-                            getStatusColor(link.status)
-                          }`}
-                        >
-                          {link.status === "active" && "✓ Active"}
-                          {link.status === "expired" && "✗ Expired"}
-                          {link.status === "filled" && "📦 Filled"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-3">
-                          <button
-                            onClick={() => copyToClipboard(link.uniqueToken)}
-                            title="Copy link"
-                            className="text-[#8fa3b8] hover:text-blue-400 transition-colors text-lg"
-                          >
-                            📋
-                          </button>
-                          <button
-                            onClick={() => setSelectedLink(link)}
-                            title="View details"
-                            className="text-[#8fa3b8] hover:text-green-400 transition-colors text-lg"
-                          >
-                            👁️
-                          </button>
-                          <button
-                            onClick={() => setShowDeleteConfirm(link.id)}
-                            title="Delete link"
-                            className="text-[#8fa3b8] hover:text-red-400 transition-colors text-lg"
-                            disabled={isSubmitting}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Create Link Modal - Matching the screenshot form */}
