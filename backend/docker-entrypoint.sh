@@ -6,7 +6,7 @@
 # This script runs on container startup and automatically handles:
 # 1. Waiting for PostgreSQL to be ready
 # 2. Generating Prisma Client
-# 3. Running pending migrations
+# 3. Running pending migrations (including table renames)
 # 4. Seeding the database (first time only)
 # 5. Starting the backend server
 ################################################################################
@@ -46,7 +46,7 @@ max_attempts=30
 attempt=1
 
 while [ $attempt -le $max_attempts ]; do
-    if pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" > /dev/null 2>&1; then
+    if pg_isready -h "${DB_HOST:-pic_postgres}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" > /dev/null 2>&1; then
         log_success "PostgreSQL is ready"
         break
     fi
@@ -77,18 +77,21 @@ else
 fi
 
 ################################################################################
-# Step 3: Deploy Pending Migrations
+# Step 3: Deploy Pending Migrations (Including Table Renames)
 ################################################################################
 
 log "Deploying pending migrations..."
-if npx prisma migrate deploy > /dev/null 2>&1; then
-    log_success "Migrations deployed"
+log_warn "This includes table naming fixes (PIC -> pic, Marketing -> marketing, ProgramType -> program_type)"
+
+if npx prisma migrate deploy 2>&1 | tee /tmp/migrate.log; then
+    log_success "Migrations deployed successfully"
 else
     # Check if error is due to no pending migrations (which is OK)
-    if npx prisma migrate status 2>&1 | grep -q "No pending migrations"; then
+    if grep -q "No pending migrations" /tmp/migrate.log; then
         log_success "No pending migrations (schema already up-to-date)"
     else
         log_error "Failed to deploy migrations"
+        cat /tmp/migrate.log
         exit 1
     fi
 fi
@@ -100,9 +103,9 @@ fi
 if [ "${SEED_DB:-true}" = "true" ]; then
     log "Checking if seed data is needed..."
     
-    # Check if PIC table has data
+    # Check if pic table has data (using snake_case name)
     RECORD_COUNT=$(npx prisma db execute --stdin <<SQL 2>/dev/null | wc -l
-        SELECT COUNT(*) FROM \"PIC\" LIMIT 1;
+        SELECT COUNT(*) FROM \"pic\" LIMIT 1;
 SQL
     ) || RECORD_COUNT=0
     
