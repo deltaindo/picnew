@@ -74,7 +74,7 @@ router.delete('/links/:id', authMiddleware, deleteLink);
 
 // ============ MASTER DATA ROUTES ============
 // All master data endpoints grouped under /master-data/:type
-// Supports: bidang, classes, personnel-types, pic, marketing, program-types
+// Supports: bidang, classes, personnel_types, pic, marketing, program_types, training_programs
 
 // Bidang routes (with /master-data prefix)
 router.get('/master-data/bidang', authMiddleware, getBidang);
@@ -88,7 +88,7 @@ router.post('/master-data/classes', authMiddleware, createClass);
 router.put('/master-data/classes/:id', authMiddleware, updateClass);
 router.delete('/master-data/classes/:id', authMiddleware, deleteClass);
 
-// Personnel types routes (with /master-data prefix)
+// Personnel types routes (with /master-data prefix) - FIXED: snake_case consistent
 router.get('/master-data/personnel_types', authMiddleware, getPersonnelTypes);
 router.post('/master-data/personnel_types', authMiddleware, createPersonnelType);
 
@@ -104,11 +104,42 @@ router.post('/master-data/marketing', authMiddleware, createMarketing);
 router.put('/master-data/marketing/:id', authMiddleware, updateMarketing);
 router.delete('/master-data/marketing/:id', authMiddleware, deleteMarketing);
 
-// Program Types routes (with /master-data prefix)
+// Program Types routes (with /master-data prefix) - FIXED: snake_case consistent
 router.get('/master-data/program_types', authMiddleware, getProgramTypes);
 router.post('/master-data/program_types', authMiddleware, createProgramType);
 router.put('/master-data/program_types/:id', authMiddleware, updateProgramType);
 router.delete('/master-data/program_types/:id', authMiddleware, deleteProgramType);
+
+// Training Programs routes (with /master-data prefix) - NEW: Added missing endpoint
+// This fetches all TrainingProgram master data (different from /training which is for admin training management)
+router.get('/master-data/training_programs', authMiddleware, async (req, res) => {
+  try {
+    const { prisma } = require('../utils/prisma');
+    const { page = 1, limit = 100 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, data] = await Promise.all([
+      prisma.trainingProgram.count(),
+      prisma.trainingProgram.findMany({
+        skip,
+        take: Number(limit),
+        include: {
+          bidang: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    console.error('Get training programs error:', error);
+    res.status(500).json({ error: 'Failed to get training programs' });
+  }
+});
 
 // Legacy routes (keep for backward compatibility)
 router.get('/bidang', authMiddleware, getBidang);
