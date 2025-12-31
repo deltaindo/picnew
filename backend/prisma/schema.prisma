@@ -44,6 +44,7 @@ model Province {
 
   @@index([code])
   @@index([name])
+  @@map("provinces")
 }
 
 // Regency/City (Kabupaten/Kota) - Level 2
@@ -64,6 +65,7 @@ model Regency {
   @@index([code])
   @@index([name])
   @@index([type])
+  @@map("regencies")
 }
 
 // District (Kecamatan) - Level 3
@@ -82,6 +84,7 @@ model District {
   @@index([regencyId])
   @@index([code])
   @@index([name])
+  @@map("districts")
 }
 
 // Village (Desa/Kelurahan) - Level 4
@@ -100,6 +103,7 @@ model Village {
   @@index([code])
   @@index([name])
   @@index([type])
+  @@map("villages")
 }
 
 // ==================== END INDONESIAN REGIONS ====================
@@ -113,6 +117,8 @@ model Bidang {
   updatedAt   DateTime             @updatedAt
 
   trainingPrograms TrainingProgram[]
+  
+  @@map("bidang")
 }
 
 // Training Programs (e.g., K3 LISTRIK, AHLI K3 UMUM)
@@ -132,6 +138,7 @@ model TrainingProgram {
   links RegistrationLink[]
 
   @@index([bidangId])
+  @@map("training_programs")
 }
 
 // Training Classes (e.g., AHLI, OPERATOR, TEKNISI)
@@ -143,6 +150,8 @@ model TrainingClass {
   updatedAt DateTime             @updatedAt
 
   links RegistrationLink[]
+  
+  @@map("training_classes")
 }
 
 // Personnel Types (e.g., OPERATOR, TEKNISI, AHLI K3)
@@ -153,6 +162,8 @@ model PersonnelType {
   updatedAt DateTime             @updatedAt
 
   links RegistrationLink[]
+  
+  @@map("personnel_types")
 }
 
 // Document Types (e.g., Surat, Ijazah, KTP)
@@ -161,6 +172,8 @@ model DocumentType {
   name      String    @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  
+  @@map("document_types")
 }
 
 // Equipment Types (e.g., MOBILE CRANE, TOWER CRANE)
@@ -170,6 +183,8 @@ model EquipmentType {
   bidangId  Int?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  
+  @@map("equipment_types")
 }
 
 // PIC (Person In Charge) - NEW
@@ -182,6 +197,7 @@ model PIC {
   links RegistrationLink[]
 
   @@index([name])
+  @@map("pic")
 }
 
 // Marketing - NEW
@@ -192,8 +208,8 @@ model Marketing {
   updatedAt DateTime  @updatedAt
 
   links RegistrationLink[]
-
-  @@index([name])
+  
+  @@map("marketing")
 }
 
 // Program Type (Reguler, Inhouse, BNSP) - NEW
@@ -205,8 +221,8 @@ model ProgramType {
   updatedAt DateTime  @updatedAt
 
   links RegistrationLink[]
-
-  @@index([name])
+  
+  @@map("program_type")
 }
 
 // Registration Links - Created by admin
@@ -248,6 +264,7 @@ model RegistrationLink {
   @@index([picId])
   @@index([marketingId])
   @@index([programTypeId])
+  @@map("registration_links")
 }
 
 // Required Documents per Link
@@ -261,6 +278,7 @@ model RequiredDocument {
   createdAt          DateTime  @default(now())
 
   @@index([registrationLinkId])
+  @@map("required_documents")
 }
 
 // Registrations - Trainee submissions
@@ -288,6 +306,7 @@ model Registration {
   notifications Notification[]
 
   @@index([registrationLinkId])
+  @@map("registrations")
 }
 
 // Trainee Documents
@@ -305,6 +324,7 @@ model TraineeDocument {
   createdAt      DateTime @default(now())
 
   @@index([registrationId])
+  @@map("trainee_documents")
 }
 
 // Certificates
@@ -324,6 +344,7 @@ model Certificate {
   createdAt        DateTime @default(now())
 
   @@index([registrationId])
+  @@map("certificates")
 }
 
 // Notifications
@@ -341,6 +362,7 @@ model Notification {
 
   @@index([registrationId])
   @@index([status])
+  @@map("notifications")
 }
 
 // Audit Logs
@@ -357,4 +379,5 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+  @@map("audit_logs")
 }
