@@ -9,10 +9,7 @@ const TABLE_MAPPING = {
   'classes': 'TrainingClass',
   'training_programs': 'TrainingProgram',
   'personnel_types': 'PersonnelType',
-  'document_types': 'DocumentType',
-  'pic': 'PIC',
-  'marketing': 'Marketing',
-  'program_types': 'ProgramType'
+  'document_types': 'DocumentType'
 };
 
 // Column mapping - which columns exist for each table
@@ -21,10 +18,7 @@ const COLUMN_MAPPING = {
   'TrainingClass': ['id', 'name', 'level', 'createdAt', 'updatedAt'],  // NO description!
   'TrainingProgram': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
   'PersonnelType': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
-  'DocumentType': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
-  'PIC': ['id', 'name', 'createdAt', 'updatedAt'],
-  'Marketing': ['id', 'name', 'createdAt', 'updatedAt'],
-  'ProgramType': ['id', 'name', 'description', 'createdAt', 'updatedAt']
+  'DocumentType': ['id', 'name', 'createdAt', 'updatedAt']  // NO description, NO level!
 };
 
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
@@ -50,8 +44,6 @@ router.get('/:type', auth, async (req, res) => {
     } else if (tableName === 'TrainingClass') {
       selectClause += ', level';
     } else if (tableName === 'TrainingProgram') {
-      selectClause += ', description';
-    } else if (tableName === 'ProgramType') {
       selectClause += ', description';
     }
     selectClause += ', "createdAt"';
@@ -117,14 +109,8 @@ router.post('/:type', auth, async (req, res) => {
                VALUES ($1, $2, NOW(), NOW()) 
                RETURNING id, name, description, "createdAt"`;
       params.push(description || null);
-    } else if (tableName === 'ProgramType') {
-      // ProgramType has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
-               VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
-      params.push(description || null);
     } else {
-      // PersonnelType, DocumentType, PIC, Marketing - only have name
+      // PersonnelType and DocumentType only have name
       query = `INSERT INTO "${tableName}" (name, "createdAt", "updatedAt") 
                VALUES ($1, NOW(), NOW()) 
                RETURNING id, name, "createdAt"`;
