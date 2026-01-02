@@ -74,7 +74,8 @@ router.delete('/links/:id', authMiddleware, deleteLink);
 
 // ============ MASTER DATA ROUTES ============
 // All master data endpoints grouped under /master-data/:type
-// Supports: bidang, classes, personnel-types, pic, marketing, program-types
+// Convention: kebab-case for multi-word routes (REST standard)
+// Supports: bidang, classes, personnel-types, pic, marketing, program-types, training-programs
 
 // Bidang routes (with /master-data prefix)
 router.get('/master-data/bidang', authMiddleware, getBidang);
@@ -88,9 +89,9 @@ router.post('/master-data/classes', authMiddleware, createClass);
 router.put('/master-data/classes/:id', authMiddleware, updateClass);
 router.delete('/master-data/classes/:id', authMiddleware, deleteClass);
 
-// Personnel types routes (with /master-data prefix)
-router.get('/master-data/personnel_types', authMiddleware, getPersonnelTypes);
-router.post('/master-data/personnel_types', authMiddleware, createPersonnelType);
+// Personnel types routes (with /master-data prefix) - kebab-case
+router.get('/master-data/personnel-types', authMiddleware, getPersonnelTypes);
+router.post('/master-data/personnel-types', authMiddleware, createPersonnelType);
 
 // PIC routes (with /master-data prefix)
 router.get('/master-data/pic', authMiddleware, getPIC);
@@ -104,13 +105,45 @@ router.post('/master-data/marketing', authMiddleware, createMarketing);
 router.put('/master-data/marketing/:id', authMiddleware, updateMarketing);
 router.delete('/master-data/marketing/:id', authMiddleware, deleteMarketing);
 
-// Program Types routes (with /master-data prefix)
-router.get('/master-data/program_types', authMiddleware, getProgramTypes);
-router.post('/master-data/program_types', authMiddleware, createProgramType);
-router.put('/master-data/program_types/:id', authMiddleware, updateProgramType);
-router.delete('/master-data/program_types/:id', authMiddleware, deleteProgramType);
+// Program Types routes (with /master-data prefix) - kebab-case
+router.get('/master-data/program-types', authMiddleware, getProgramTypes);
+router.post('/master-data/program-types', authMiddleware, createProgramType);
+router.put('/master-data/program-types/:id', authMiddleware, updateProgramType);
+router.delete('/master-data/program-types/:id', authMiddleware, deleteProgramType);
 
-// Legacy routes (keep for backward compatibility)
+// Training Programs routes (with /master-data prefix) - kebab-case
+router.get('/master-data/training-programs', authMiddleware, async (req, res) => {
+  try {
+    const { prisma } = require('../utils/prisma');
+    const { page = 1, limit = 100 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, data] = await Promise.all([
+      prisma.trainingProgram.count(),
+      prisma.trainingProgram.findMany({
+        skip,
+        take: Number(limit),
+        include: {
+          bidang: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    console.error('Get training programs error:', error);
+    res.status(500).json({ error: 'Failed to get training programs' });
+  }
+});
+
+// ============ LEGACY & DEPRECATED ROUTES ============
+// Keep for backward compatibility - these are deprecated, use /master-data/* instead
+
 router.get('/bidang', authMiddleware, getBidang);
 router.post('/bidang', authMiddleware, createBidang);
 router.put('/bidang/:id', authMiddleware, updateBidang);
@@ -121,6 +154,7 @@ router.post('/classes', authMiddleware, createClass);
 router.put('/classes/:id', authMiddleware, updateClass);
 router.delete('/classes/:id', authMiddleware, deleteClass);
 
+// Deprecated: /personnel-types and /personnel_types - use /master-data/personnel-types
 router.get('/personnel-types', authMiddleware, getPersonnelTypes);
 router.post('/personnel-types', authMiddleware, createPersonnelType);
 
