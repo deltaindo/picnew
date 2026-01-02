@@ -11,7 +11,7 @@ async function autoSeed() {
     console.log('\n🌱 Checking if database needs seeding...');
 
     // Check if PIC already exists
-    const picCount = await prisma.PIC.count();
+    const picCount = await prisma.pic.count();
     if (picCount > 0) {
       console.log('✅ Master data already exists. Skipping auto-seed.');
       return;
@@ -32,7 +32,7 @@ async function autoSeed() {
     ];
 
     for (const name of picNames) {
-      await prisma.PIC.upsert({
+      await prisma.pic.upsert({
         where: { name },
         update: {},
         create: { name },
@@ -58,7 +58,7 @@ async function autoSeed() {
     ];
 
     for (const name of marketingNames) {
-      await prisma.Marketing.upsert({
+      await prisma.marketing.upsert({
         where: { name },
         update: {},
         create: { name },
@@ -75,7 +75,7 @@ async function autoSeed() {
     ];
 
     for (const program of programTypes) {
-      await prisma.ProgramType.upsert({
+      await prisma.programType.upsert({
         where: { name: program.name },
         update: { description: program.description },
         create: program,
@@ -102,13 +102,13 @@ async function resetMasterData() {
   try {
     console.log('\n⚠️  WARNING: Deleting all master data...\n');
 
-    await prisma.PIC.deleteMany({});
+    await prisma.pic.deleteMany({});
     console.log('✅ PIC cleared');
 
-    await prisma.Marketing.deleteMany({});
+    await prisma.marketing.deleteMany({});
     console.log('✅ Marketing cleared');
 
-    await prisma.ProgramType.deleteMany({});
+    await prisma.programType.deleteMany({});
     console.log('✅ Program Types cleared');
 
     console.log('\n✅ Master data reset complete!\n');
@@ -123,9 +123,9 @@ async function resetMasterData() {
  */
 async function checkMasterDataStatus() {
   try {
-    const picCount = await prisma.PIC.count();
-    const marketingCount = await prisma.Marketing.count();
-    const programTypeCount = await prisma.ProgramType.count();
+    const picCount = await prisma.pic.count();
+    const marketingCount = await prisma.marketing.count();
+    const programTypeCount = await prisma.programType.count();
 
     return {
       pic: picCount,
