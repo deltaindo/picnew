@@ -207,6 +207,7 @@ model ProgramType {
   links RegistrationLink[]
 
   @@index([name])
+  @@map("program_types")
 }
 
 // Registration Links - Created by admin
