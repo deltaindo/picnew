@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5
 
 export default function AdminLogin() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@deltaindo.com');
+  const [email, setEmail] = useState('admin@delta-indonesia.com');
   const [password, setPassword] = useState('Admin123!');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -80,7 +80,7 @@ export default function AdminLogin() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@deltaindo.com"
+                placeholder="admin@delta-indonesia.com"
                 className="w-full px-4 py-3 rounded-lg bg-[#1a2332] border border-[#2d3e52] text-white placeholder-[#8fa3b8] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 disabled={loading}
               />
@@ -149,7 +149,7 @@ export default function AdminLogin() {
           <div className="mt-6 pt-6 border-t border-[#2d3e52]">
             <p className="text-[#8fa3b8] text-xs text-center mb-3">Demo Credentials</p>
             <div className="bg-[#1a2332] rounded p-3 text-xs text-[#8fa3b8] space-y-1">
-              <p><span className="text-blue-400">Email:</span> admin@deltaindo.com</p>
+              <p><span className="text-blue-400">Email:</span> admin@delta-indonesia.com</p>
               <p><span className="text-blue-400">Password:</span> Admin123!</p>
             </div>
           </div>
