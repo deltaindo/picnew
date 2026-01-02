@@ -104,33 +104,20 @@ if [ "${SEED_DB:-true}" = "true" ]; then
     log "Checking if seed data is needed..."
     
     # Check if pic table has data (using snake_case name)
-    RECORD_COUNT=$(npx prisma db execute --stdin <<'SQL' 2>/dev/null | grep -c "^" || echo "0"
-        SELECT COUNT(*) FROM "pic";
+    RECORD_COUNT=$(npx prisma db execute --stdin <<SQL 2>/dev/null | wc -l
+        SELECT COUNT(*) FROM \"pic\" LIMIT 1;
 SQL
-    )
+    ) || RECORD_COUNT=0
     
-    if [ -z "$RECORD_COUNT" ] || [ "$RECORD_COUNT" = "0" ]; then
+    if [ "$RECORD_COUNT" -eq 0 ]; then
         log "Seeding database with initial data..."
-        
-        # Try to seed using ts-node (supports TypeScript)
-        if npx ts-node -e "
-          const { autoSeed } = require('./prisma/auto-seed.ts');
-          autoSeed()
-            .then(() => {
-              console.log('✅ Auto-seed completed successfully');
-              process.exit(0);
-            })
-            .catch(err => {
-              console.error('❌ Auto-seed failed:', err.message);
-              process.exit(1);
-            });
-        " 2>&1; then
+        if npm run prisma:seed > /dev/null 2>&1; then
             log_success "Database seeded successfully"
         else
             log_warn "Seed completed with warnings (continuing startup)"
         fi
     else
-        log_success "Database already seeded (${RECORD_COUNT} PIC records found, skipping)"
+        log_success "Database already seeded (skipping)"
     fi
 fi
 
