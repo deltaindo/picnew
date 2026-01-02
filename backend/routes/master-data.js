@@ -3,28 +3,16 @@ const router = express.Router();
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-// Map frontend types to actual database table names (all snake_case)
+// Map frontend types to actual database table names
 const TABLE_MAPPING = {
-  'bidang': 'bidang',
-  'classes': 'training_classes',
-  'training_programs': 'training_programs',
-  'personnel_types': 'personnel_types',
-  'document_types': 'document_types',
-  'pic': 'pic',
-  'marketing': 'marketing',
-  'program_types': 'program_type'
-};
-
-// Column mapping - which columns exist for each table
-const COLUMN_MAPPING = {
-  'bidang': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
-  'training_classes': ['id', 'name', 'level', 'createdAt', 'updatedAt'],  // NO description!
-  'training_programs': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
-  'personnel_types': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
-  'document_types': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
-  'pic': ['id', 'name', 'createdAt', 'updatedAt'],
-  'marketing': ['id', 'name', 'createdAt', 'updatedAt'],
-  'program_type': ['id', 'name', 'description', 'createdAt', 'updatedAt']
+  'bidang': 'Bidang',
+  'classes': 'TrainingClass',
+  'training_programs': 'TrainingProgram',
+  'personnel_types': 'PersonnelType',
+  'document_types': 'DocumentType',
+  'pic': 'PIC',
+  'marketing': 'Marketing',
+  'program_types': 'ProgramType'
 };
 
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
@@ -42,22 +30,8 @@ router.get('/:type', auth, async (req, res) => {
     }
 
     const tableName = TABLE_MAPPING[type];
-    
-    // Build SELECT clause based on what columns actually exist
-    let selectClause = 'id, name';
-    if (tableName === 'bidang') {
-      selectClause += ', description';
-    } else if (tableName === 'training_classes') {
-      selectClause += ', level';
-    } else if (tableName === 'training_programs') {
-      selectClause += ', description';
-    } else if (tableName === 'program_type') {
-      selectClause += ', description';
-    }
-    selectClause += ', "createdAt"';
-    
     const result = await pool.query(
-      `SELECT ${selectClause} FROM "${tableName}" ORDER BY name ASC`
+      `SELECT * FROM "${tableName}" ORDER BY name ASC`
     );
 
     res.json({
@@ -98,38 +72,25 @@ router.post('/:type', auth, async (req, res) => {
     const tableName = TABLE_MAPPING[type];
     let query = '';
     let params = [name.trim()];
-    
-    if (tableName === 'bidang') {
-      // bidang has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
+
+    // Build query based on table type
+    if (['Bidang', 'TrainingProgram', 'ProgramType'].includes(tableName)) {
+      query = `INSERT INTO "${tableName}" (name, description, createdAt, updatedAt) 
                VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
+               RETURNING *`;
       params.push(description || null);
-    } else if (tableName === 'training_classes') {
-      // training_classes has level, NOT description
-      query = `INSERT INTO "${tableName}" (name, level, "createdAt", "updatedAt") 
+    } else if (tableName === 'TrainingClass') {
+      query = `INSERT INTO "${tableName}" (name, level, createdAt, updatedAt) 
                VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, level, "createdAt"`;
+               RETURNING *`;
       params.push(level || 1);
-    } else if (tableName === 'training_programs') {
-      // training_programs has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
-               VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
-      params.push(description || null);
-    } else if (tableName === 'program_type') {
-      // program_type has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
-               VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
-      params.push(description || null);
     } else {
-      // personnel_types, document_types, pic, marketing - only have name
-      query = `INSERT INTO "${tableName}" (name, "createdAt", "updatedAt") 
+      // PIC, Marketing, PersonnelType, DocumentType - only name
+      query = `INSERT INTO "${tableName}" (name, createdAt, updatedAt) 
                VALUES ($1, NOW(), NOW()) 
-               RETURNING id, name, "createdAt"`;
+               RETURNING *`;
     }
-    
+
     const result = await pool.query(query, params);
 
     res.json({
@@ -139,7 +100,7 @@ router.post('/:type', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Create master data error:', error);
-    
+
     // Check for specific database errors
     if (error.code === '23505') {
       return res.status(409).json({
@@ -148,7 +109,7 @@ router.post('/:type', auth, async (req, res) => {
         error: error.message,
       });
     }
-    
+
     // Check for column not found error (42703) or table not found (42P01)
     if (error.code === '42703' || error.code === '42P01') {
       return res.status(400).json({
@@ -157,7 +118,7 @@ router.post('/:type', auth, async (req, res) => {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -187,7 +148,7 @@ router.delete('/:type/:id', auth, async (req, res) => {
 
     const tableName = TABLE_MAPPING[type];
     const result = await pool.query(
-      `DELETE FROM "${tableName}" WHERE id = $1 RETURNING id, name`,
+      `DELETE FROM "${tableName}" WHERE id = $1 RETURNING *`,
       [parseInt(id)]
     );
 
@@ -205,7 +166,7 @@ router.delete('/:type/:id', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete master data error:', error);
-    
+
     // Check for foreign key constraint violations
     if (error.code === '23503') {
       return res.status(400).json({
@@ -213,7 +174,7 @@ router.delete('/:type/:id', auth, async (req, res) => {
         message: 'Cannot delete item - it is referenced by other records',
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error',
