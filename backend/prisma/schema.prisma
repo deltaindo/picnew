@@ -16,11 +16,10 @@ model User {
   email     String    @unique
   password  String
   name      String
-  phone     String?
   role      String    @default("admin")
-  lastLogin DateTime? // Track last login timestamp
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  lastLogin DateTime? @map("last_login") // Track last login timestamp
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
