@@ -1,6 +1,5 @@
 -- PIC App Database Schema (PostgreSQL 15 Compatible)
 -- Fully compatible with PostgreSQL 15 Alpine
--- Column naming: camelCase to match Prisma schema
 
 -- Users table (Only 1 admin / 1 superadmin)
 CREATE TABLE IF NOT EXISTS users (
@@ -8,11 +7,11 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
     role VARCHAR(50) NOT NULL DEFAULT 'admin',
-    lastLogin TIMESTAMP,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
 );
 
 -- Trainings table
