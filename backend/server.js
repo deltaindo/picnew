@@ -122,7 +122,7 @@ const startServer = async () => {
   try {
     // Run auto-seed before starting the server
     try {
-      const { autoSeed } = require('./prisma/auto-seed.js');
+      const { autoSeed } = require('./prisma/auto-seed.ts');
       await autoSeed();
     } catch (seedError) {
       console.warn('\n⚠️  Auto-seed warning:', seedError.message);
