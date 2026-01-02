@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:postgres@pic_postgres/pic_app"
+  url      = env("DATABASE_URL")
 }
 
 // Users - Admin accounts
@@ -16,11 +16,11 @@ model User {
   email     String    @unique
   password  String
   name      String
-  phone     String?
-  role      String    @default("admin")
-  lastLogin DateTime? // Track last login timestamp
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  role      String    @default("admin") @db.VarChar(50)
+  status    String    @default("active") @db.VarChar(50) // active, inactive
+  createdAt DateTime  @default(now()) @db.Timestamp(3) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamp(3) @map("updated_at")
+  lastLogin DateTime? @map("last_login") @db.Timestamp(3) // Track last login timestamp
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
