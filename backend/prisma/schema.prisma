@@ -18,9 +18,10 @@ model User {
   name      String
   phone     String?
   role      String    @default("admin")
-  lastLogin DateTime? // Track last login timestamp
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  status    String    @default("active")  // active, inactive
+  lastLogin DateTime? @db.name("last_login")  // Maps to last_login column in database
+  createdAt DateTime  @default(now()) @db.name("created_at")
+  updatedAt DateTime  @updatedAt @db.name("updated_at")
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
