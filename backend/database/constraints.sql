@@ -1,6 +1,8 @@
 -- PostgreSQL Constraints for PIC App
--- Note: CHECK constraints with subqueries not supported in PostgreSQL
--- Use application logic or triggers instead for role enforcement
+-- Note: Constraints reference actual tables from schema.sql
+-- All tables use snake_case names per Prisma @map mappings
+
+-- ============ USERS TABLE CONSTRAINTS ============
 
 -- Simple constraint: role must be valid
 ALTER TABLE users
@@ -12,25 +14,35 @@ ALTER TABLE users
 ADD CONSTRAINT valid_status 
 CHECK (status IN ('active', 'inactive', 'suspended'));
 
--- Training status validation
-ALTER TABLE trainings
-ADD CONSTRAINT valid_training_status 
-CHECK (status IN ('scheduled', 'ongoing', 'completed', 'cancelled'));
+-- ============ TRAINING PROGRAMS CONSTRAINTS ============
+
+-- Training program status validation
+ALTER TABLE training_programs
+ADD CONSTRAINT valid_training_program_status 
+CHECK (status IN ('active', 'inactive', 'archived'));
+
+-- ============ REGISTRATION LINKS CONSTRAINTS ============
 
 -- Registration link status validation
 ALTER TABLE registration_links
-ADD CONSTRAINT valid_link_status 
-CHECK (status IN ('active', 'expired', 'closed'));
+ADD CONSTRAINT valid_registration_link_status 
+CHECK (status IN ('active', 'expired', 'filled', 'closed'));
+
+-- ============ REGISTRATIONS CONSTRAINTS ============
 
 -- Registration status validation
 ALTER TABLE registrations
 ADD CONSTRAINT valid_registration_status 
-CHECK (status IN ('submitted', 'approved', 'rejected', 'completed'));
+CHECK (submission_status IN ('submitted', 'incomplete', 'approved', 'rejected', 'completed'));
 
--- Document status validation
-ALTER TABLE registration_documents
-ADD CONSTRAINT valid_document_status 
-CHECK (status IN ('uploaded', 'verified', 'rejected'));
+-- ============ TRAINEE DOCUMENTS CONSTRAINTS ============
+
+-- Document upload status validation
+ALTER TABLE trainee_documents
+ADD CONSTRAINT valid_trainee_document_upload_status 
+CHECK (upload_status IN ('uploaded', 'verified', 'rejected'));
+
+-- ============ NOTIFICATIONS CONSTRAINTS ============
 
 -- Notification status validation
 ALTER TABLE notifications
@@ -42,23 +54,19 @@ ALTER TABLE notifications
 ADD CONSTRAINT valid_notification_type 
 CHECK (type IN ('email', 'whatsapp'));
 
--- Ensure dates make sense for trainings
-ALTER TABLE trainings
-ADD CONSTRAINT valid_training_dates 
-CHECK (start_date <= end_date);
+-- ============ CERTIFICATES CONSTRAINTS ============
 
--- Ensure expiry date is in future for certificates
+-- Certificate status validation
 ALTER TABLE certificates
-ADD CONSTRAINT valid_certificate_dates 
-CHECK (issue_date <= expiry_date);
+ADD CONSTRAINT valid_certificate_status 
+CHECK (status IN ('issued', 'pending', 'revoked'));
 
--- IMPORTANT: Application-level enforcement
--- For role enforcement (only 1 admin, 1 superadmin), use:
--- 1. Database triggers (advanced)
--- 2. Application logic in backend (recommended)
--- 3. Unique indexes with partial WHERE clause
+-- ============ ROLE ENFORCEMENT (APPLICATION LEVEL RECOMMENDED) ============
 
--- Create unique indexes for role enforcement (alternative approach)
+-- Create unique indexes for role enforcement
+-- NOTE: This enforces only 1 superadmin and 1 admin can exist
+-- Use application logic to enforce more complex rules
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_only_one_superadmin 
 ON users (role) WHERE role = 'superadmin';
 
