@@ -1,281 +1,111 @@
--- PIC App - Training Programs Seeder
--- Insert 19 K3 Training Programs + Master Data
+-- PIC App - Master Data Seeder
+-- Insert Bidang (Sectors), Training Programs, Classes, Personnel Types, Document Types
+-- Uses snake_case table and column names per Prisma schema mapping
 
--- Insert Bidang (Sectors) if not already seeded in schema
-INSERT INTO bidang (name, code) VALUES 
-('PAA', 'PAA'),
-('AK3U', 'AK3U'),
-('ELEVATOR', 'ELEVATOR'),
-('LISTRIK', 'LISTRIK'),
-('KEBAKARAN', 'KEBAKARAN'),
-('KETINGGIAN', 'KETINGGIAN'),
-('TENAGA', 'TENAGA'),
-('KONSTRUKSI', 'KONSTRUKSI'),
-('UAP', 'UAP'),
-('LINGKUNGAN', 'LINGKUNGAN'),
-('KESEHATAN', 'KESEHATAN'),
-('PENGELASAN', 'PENGELASAN'),
-('MANAJEMEN K3', 'MANAJEMEN')
-ON CONFLICT DO NOTHING;
+-- Insert Bidang (Sectors) if not already seeded
+INSERT INTO bidangs (name, description, created_at, updated_at) VALUES 
+('PAA (PESAWAT ANGKAT DAN ANGKUT)', 'Keselamatan Pesawat Angkat dan Angkut', NOW(), NOW()),
+('AK3U (KEAHLIAN K3 UMUM)', 'Keahlian Keselamatan dan Kesehatan Kerja Umum', NOW(), NOW()),
+('ELEVATOR DAN ESKALATOR', 'Keselamatan Elevator dan Eskalator', NOW(), NOW()),
+('LISTRIK', 'Keselamatan dan Kesehatan Kerja Kelistrikan', NOW(), NOW()),
+('PENANGGULANGAN KEBAKARAN', 'Pencegahan dan Penanggulangan Kebakaran', NOW(), NOW()),
+('BEKERJA PADA KETINGGIAN', 'Keselamatan Bekerja pada Ketinggian', NOW(), NOW()),
+('PESAWAT TENAGA DAN PRODUKSI', 'Keselamatan Pesawat Tenaga dan Produksi', NOW(), NOW()),
+('KONSTRUKSI DAN BANGUNAN', 'Keselamatan Konstruksi dan Bangunan', NOW(), NOW()),
+('PESAWAT UAP, BEJANA TEKANAN DAN TANGKI TIMBUN', 'Keselamatan Pesawat Uap dan Bejana Tekanan', NOW(), NOW()),
+('LINGKUNGAN KERJA DAN BAHAN BERBAHAYA', 'Keselamatan Lingkungan Kerja dan B3', NOW(), NOW()),
+('KESEHATAN KERJA', 'Kesehatan dan Higiene Kerja', NOW(), NOW()),
+('PENGELASAN', 'Keselamatan Pengelasan', NOW(), NOW()),
+('SISTEM MANAJEMEN K3', 'Sistem Manajemen Keselamatan dan Kesehatan Kerja', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
--- Insert Classes if not already seeded
-INSERT INTO classes (name, code) VALUES 
-('AHLI', 'AHLI'),
-('SUPERVISI', 'SUPERVISI'),
-('TEKNISI', 'TEKNISI'),
-('OPERATOR', 'OPERATOR'),
-('KELAS A', 'KELAS_A'),
-('KELAS B', 'KELAS_B'),
-('KELAS C', 'KELAS_C'),
-('KELAS D', 'KELAS_D'),
-('PETUGAS', 'PETUGAS'),
-('UTAMA', 'UTAMA'),
-('MADYA', 'MADYA')
-ON CONFLICT DO NOTHING;
+-- Insert Training Classes
+INSERT INTO training_classes (name, level, created_at, updated_at) VALUES 
+('AHLI', 3, NOW(), NOW()),
+('SUPERVISI SCAFFOLDING', 3, NOW(), NOW()),
+('TEKNISI SCAFFOLDING', 2, NOW(), NOW()),
+('TEKNISI', 2, NOW(), NOW()),
+('KELAS A', 1, NOW(), NOW()),
+('KELAS B', 2, NOW(), NOW()),
+('KELAS C', 3, NOW(), NOW()),
+('KELAS D', 4, NOW(), NOW()),
+('OPERATOR', 2, NOW(), NOW()),
+('TEKNISI PESAWAT UAP', 2, NOW(), NOW()),
+('TEKNISI BEJANA TEKAN DAN TANGKI TIMBUN', 2, NOW(), NOW()),
+('KELAS I', 1, NOW(), NOW()),
+('KELAS II', 2, NOW(), NOW()),
+('KELAS III', 3, NOW(), NOW()),
+('PETUGAS', 1, NOW(), NOW()),
+('UTAMA', 3, NOW(), NOW()),
+('MADYA', 2, NOW(), NOW()),
+('REGU PENYELAMAT', 2, NOW(), NOW()),
+('TKBT 2', 2, NOW(), NOW()),
+('TKPK 1', 1, NOW(), NOW()),
+('TKPK 2', 2, NOW(), NOW()),
+('TEKNISI & OPERATOR', 2, NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
--- Insert Personnel Types if not already seeded
-INSERT INTO personnel_types (name, code) VALUES 
-('OPERATOR', 'OPERATOR'),
-('JURU', 'JURU'),
-('TEKNISI', 'TEKNISI'),
-('AHLI K3', 'AHLI_K3'),
-('SUPERVISI', 'SUPERVISI'),
-('PETUGAS', 'PETUGAS'),
-('MANTRI', 'MANTRI'),
-('INSPECTOR', 'INSPECTOR'),
-('PENGUJI', 'PENGUJI'),
-('KEPALA', 'KEPALA'),
-('MANAGER', 'MANAGER'),
-('KOORDINATOR', 'KOORDINATOR'),
-('STAFF', 'STAFF')
-ON CONFLICT DO NOTHING;
+-- Insert Personnel Types
+INSERT INTO personnel_types (name, created_at, updated_at) VALUES 
+('OPERATOR MESIN', NOW(), NOW()),
+('PEKERJA KONSTRUKSI', NOW(), NOW()),
+('TEKNISI MESIN', NOW(), NOW()),
+('SUPERVISOR K3', NOW(), NOW()),
+('AHLI K3', NOW(), NOW()),
+('PETUGAS KEBAKARAN', NOW(), NOW()),
+('TEKNISI LISTRIK', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
--- Insert Document Types if not already seeded
-INSERT INTO document_types (name, code) VALUES 
-('Surat Rekomendasi', 'SURAT'),
-('Ijazah/Sertifikat', 'IJAZAH'),
-('Fotokopi KTP', 'KTP'),
-('Surat Keputusan', 'SK'),
-('Foto 4x6', 'FOTO'),
-('Bukti Pengalaman', 'BUKTI')
-ON CONFLICT DO NOTHING;
+-- Insert Document Types
+INSERT INTO document_types (name, created_at, updated_at) VALUES 
+('Sertifikat Pelatihan', NOW(), NOW()),
+('Ijazah', NOW(), NOW()),
+('KTP', NOW(), NOW()),
+('Surat Keterangan Kerja', NOW(), NOW()),
+('Pas Foto', NOW(), NOW()),
+('Surat Keterangan Sehat', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
--- Insert 19 Training Programs
-INSERT INTO trainings (name, description, start_date, end_date, location, duration_days, max_participants, instructor, status) VALUES
-(
-  'AHLI K3 UMUM',
-  'Program pelatihan Ahli K3 Umum - Sertifikasi Nasional',
-  '2026-01-19',
-  '2026-02-03',
-  'Bekasi Training Center',
-  16,
-  25,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'AUDITOR SMK3',
-  'Program pelatihan Auditor Sistem Manajemen K3',
-  '2026-02-09',
-  '2026-02-13',
-  'Bekasi Training Center',
-  5,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 LISTRIK',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Kelistrikan',
-  '2026-02-16',
-  '2026-02-20',
-  'Bekasi Training Center',
-  5,
-  25,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 KONSTRUKSI',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Konstruksi',
-  '2026-02-23',
-  '2026-02-27',
-  'Bekasi Training Center',
-  5,
-  25,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 ELEVATOR ESKALATOR',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Elevator dan Eskalator',
-  '2026-03-02',
-  '2026-03-06',
-  'Bekasi Training Center',
-  5,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 KEBAKARAN',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Pencegahan Kebakaran',
-  '2026-03-09',
-  '2026-03-11',
-  'Bekasi Training Center',
-  3,
-  25,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 PAA',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Pesawat Angkut dan Angkat',
-  '2026-03-16',
-  '2026-03-17',
-  'Bekasi Training Center',
-  2,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 PTP',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Pekerjaan Tambang dan Permukaan',
-  '2026-03-23',
-  '2026-03-27',
-  'Bekasi Training Center',
-  5,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 PUBT',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Penerbangan Udara Barang Terbang',
-  '2026-03-30',
-  '2026-04-03',
-  'Bekasi Training Center',
-  5,
-  15,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 LAS',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Pengelasan',
-  '2026-04-06',
-  '2026-04-10',
-  'Bekasi Training Center',
-  5,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 KIMIA',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Bahan Kimia',
-  '2026-04-13',
-  '2026-04-17',
-  'Bekasi Training Center',
-  5,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 RUANG TERBATAS',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Ruang Terbatas',
-  '2026-04-20',
-  '2026-04-21',
-  'Bekasi Training Center',
-  2,
-  15,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 PEKERJAAN KETINGGIAN',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Pekerjaan Ketinggian',
-  '2026-04-27',
-  '2026-04-29',
-  'Bekasi Training Center',
-  3,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'K3 KESEHATAN KERJA',
-  'Program pelatihan Keselamatan dan Kesehatan Kerja Kesehatan Kerja',
-  '2026-05-04',
-  '2026-05-07',
-  'Bekasi Training Center',
-  4,
-  25,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'TKBT 1',
-  'Program pelatihan Teknisi Keselamatan Boiler Tingkat 1',
-  '2026-05-11',
-  '2026-05-14',
-  'Bekasi Training Center',
-  4,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'TKBT 2',
-  'Program pelatihan Teknisi Keselamatan Boiler Tingkat 2',
-  '2026-05-18',
-  '2026-05-20',
-  'Bekasi Training Center',
-  3,
-  20,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'TKPK 1',
-  'Program pelatihan Teknisi Keselamatan Pipa Kukus Tingkat 1',
-  '2026-05-25',
-  '2026-05-28',
-  'Bekasi Training Center',
-  4,
-  15,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'TKPK 2',
-  'Program pelatihan Teknisi Keselamatan Pipa Kukus Tingkat 2',
-  '2026-06-01',
-  '2026-06-04',
-  'Bekasi Training Center',
-  4,
-  15,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-),
-(
-  'TKPK 3',
-  'Program pelatihan Teknisi Keselamatan Pipa Kukus Tingkat 3',
-  '2026-06-08',
-  '2026-06-10',
-  'Bekasi Training Center',
-  3,
-  15,
-  'Tim Instruktur Delta Indonesia',
-  'scheduled'
-)
-ON CONFLICT DO NOTHING;
+-- Insert PIC (Person In Charge)
+INSERT INTO pics (name, created_at, updated_at) VALUES 
+('Ghaida Trisnanda', NOW(), NOW()),
+('Yuyun', NOW(), NOW()),
+('Echasita', NOW(), NOW()),
+('Erje', NOW(), NOW()),
+('Nur Afidah', NOW(), NOW()),
+('Hafid', NOW(), NOW()),
+('Daniel Setiono', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert Marketing Personnel
+INSERT INTO marketings (name, created_at, updated_at) VALUES 
+('Agustyani', NOW(), NOW()),
+('Atikah', NOW(), NOW()),
+('Anik', NOW(), NOW()),
+('Yoppi', NOW(), NOW()),
+('Intang', NOW(), NOW()),
+('Hafid', NOW(), NOW()),
+('Ali M', NOW(), NOW()),
+('Erje', NOW(), NOW()),
+('Indri', NOW(), NOW()),
+('Bayu', NOW(), NOW()),
+('Yunny', NOW(), NOW()),
+('Eko', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert Program Types
+INSERT INTO program_types (name, description, created_at, updated_at) VALUES 
+('Reguler', 'Program Reguler', NOW(), NOW()),
+('Inhouse', 'Program Inhouse', NOW(), NOW()),
+('BNSP', 'Program BNSP', NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
 -- Verify seeding
-SELECT 'Trainings seeded:' as message, COUNT(*) as total FROM trainings;
-SELECT 'Bidang seeded:' as message, COUNT(*) as total FROM bidang;
-SELECT 'Classes seeded:' as message, COUNT(*) as total FROM classes;
-SELECT 'Personnel Types seeded:' as message, COUNT(*) as total FROM personnel_types;
-SELECT 'Document Types seeded:' as message, COUNT(*) as total FROM document_types;
+SELECT 'Master data seeded successfully!' as status;
+SELECT COUNT(*) as bidang_count FROM bidangs;
+SELECT COUNT(*) as training_classes_count FROM training_classes;
+SELECT COUNT(*) as personnel_types_count FROM personnel_types;
+SELECT COUNT(*) as document_types_count FROM document_types;
+SELECT COUNT(*) as pics_count FROM pics;
+SELECT COUNT(*) as marketings_count FROM marketings;
+SELECT COUNT(*) as program_types_count FROM program_types;
