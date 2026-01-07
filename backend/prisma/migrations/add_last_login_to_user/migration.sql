@@ -1,2 +1,2 @@
 -- AddColumn
-ALTER TABLE "users" ADD COLUMN "lastLogin" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "last_login" TIMESTAMP(3);
