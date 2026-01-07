@@ -71,7 +71,39 @@ async function main() {
       if (b.name.includes('SISTEM MANAJEMEN')) bidangMap['SMK3'] = b.id;
     });
 
-    // 3. Create training classes - Real K3 classes
+    // 3. Create training programs - Real K3 Training Programs
+    console.log('\n📚 Seeding Training Programs...');
+    const trainingProgramsList = [
+      { name: 'AHLI K3 UMUM', description: 'Pelatihan Ahli Keselamatan dan Kesehatan Kerja Umum', bidangId: bidangMap['AK3U'], durationDays: 12 },
+      { name: 'AUDITOR SMK3', description: 'Pelatihan Auditor Sistem Manajemen K3', bidangId: bidangMap['SMK3'], durationDays: 5 },
+      { name: 'K3 KONSTRUKSI', description: 'Pelatihan K3 Konstruksi dan Bangunan', bidangId: bidangMap['KONSTRUKSI'], durationDays: 5 },
+      { name: 'K3 LISTRIK', description: 'Pelatihan K3 Kelistrikan', bidangId: bidangMap['LISTRIK'], durationDays: 5 },
+      { name: 'K3 ELEVATOR ESKALATOR', description: 'Pelatihan K3 Elevator dan Eskalator', bidangId: bidangMap['ELEVATOR'], durationDays: 4 },
+      { name: 'K3 KEBAKARAN', description: 'Pelatihan K3 Penanggulangan Kebakaran', bidangId: bidangMap['KEBAKARAN'], durationDays: 4 },
+      { name: 'K3 PAA', description: 'Pelatihan K3 Pesawat Angkat dan Angkut', bidangId: bidangMap['PAA'], durationDays: 5 },
+      { name: 'K3 PTP', description: 'Pelatihan K3 Pesawat Tenaga dan Produksi', bidangId: bidangMap['PTP'], durationDays: 5 },
+      { name: 'K3 PUBT', description: 'Pelatihan K3 Pesawat Uap dan Bejana Tekanan', bidangId: bidangMap['PUBT'], durationDays: 5 },
+      { name: 'K3 LAS', description: 'Pelatihan K3 Pengelasan', bidangId: bidangMap['LAS'], durationDays: 3 },
+      { name: 'K3 KIMIA', description: 'Pelatihan K3 Bahan Kimia Berbahaya', bidangId: bidangMap['KIMIA'], durationDays: 4 },
+      { name: 'K3 RUANG TERBATAS', description: 'Pelatihan K3 Bekerja di Ruang Terbatas', bidangId: bidangMap['KIMIA'], durationDays: 2 },
+      { name: 'K3 PEKERJAAN PADA KETINGGIAN', description: 'Pelatihan K3 Bekerja pada Ketinggian', bidangId: bidangMap['KETINGGIAN'], durationDays: 3 },
+      { name: 'K3 KESEHATAN KERJA', description: 'Pelatihan Kesehatan dan Higiene Kerja', bidangId: bidangMap['KESEHATAN'], durationDays: 4 },
+      { name: 'TKBT 2', description: 'Teknisi Keselamatan Bejana Tekan Tingkat 2', bidangId: bidangMap['PUBT'], durationDays: 5 },
+      { name: 'TKBT 1', description: 'Teknisi Keselamatan Bejana Tekan Tingkat 1', bidangId: bidangMap['PUBT'], durationDays: 4 },
+      { name: 'TKPK 1', description: 'Teknisi Keselamatan Pesawat Khusus Tingkat 1', bidangId: bidangMap['PAA'], durationDays: 4 },
+      { name: 'TKPK 2', description: 'Teknisi Keselamatan Pesawat Khusus Tingkat 2', bidangId: bidangMap['PAA'], durationDays: 5 },
+    ];
+
+    for (const program of trainingProgramsList) {
+      await prisma.trainingProgram.upsert({
+        where: { name: program.name },
+        update: {},
+        create: program,
+      });
+    }
+    console.log(`✅ ${trainingProgramsList.length} Training Programs created`);
+
+    // 4. Create training classes - Real K3 classes
     console.log('\n🎓 Seeding Training Classes...');
     const classList = [
       { name: 'AHLI', level: 3 },
@@ -107,7 +139,7 @@ async function main() {
     }
     console.log(`✅ ${classList.length} Training Classes created`);
 
-    // 4. Create personnel types
+    // 5. Create personnel types
     console.log('\n👥 Seeding Personnel Types...');
     const personnelTypesList = [
       { name: 'OPERATOR MESIN' },
@@ -128,7 +160,7 @@ async function main() {
     }
     console.log(`✅ ${personnelTypesList.length} Personnel Types created`);
 
-    // 5. Create document types
+    // 6. Create document types
     console.log('\n📄 Seeding Document Types...');
     const docTypesList = [
       { name: 'Sertifikat Pelatihan' },
@@ -147,38 +179,6 @@ async function main() {
       });
     }
     console.log(`✅ ${docTypesList.length} Document Types created`);
-
-    // 6. Create training programs - Real K3 Training Programs
-    console.log('\n📚 Seeding Training Programs...');
-    const trainingProgramsList = [
-      { name: 'AHLI K3 UMUM', description: 'Pelatihan Ahli Keselamatan dan Kesehatan Kerja Umum', bidangId: bidangMap['AK3U'], durationDays: 12 },
-      { name: 'AUDITOR SMK3', description: 'Pelatihan Auditor Sistem Manajemen K3', bidangId: bidangMap['SMK3'], durationDays: 5 },
-      { name: 'K3 KONSTRUKSI', description: 'Pelatihan K3 Konstruksi dan Bangunan', bidangId: bidangMap['KONSTRUKSI'], durationDays: 5 },
-      { name: 'K3 LISTRIK', description: 'Pelatihan K3 Kelistrikan', bidangId: bidangMap['LISTRIK'], durationDays: 5 },
-      { name: 'K3 ELEVATOR ESKALATOR', description: 'Pelatihan K3 Elevator dan Eskalator', bidangId: bidangMap['ELEVATOR'], durationDays: 4 },
-      { name: 'K3 KEBAKARAN', description: 'Pelatihan K3 Penanggulangan Kebakaran', bidangId: bidangMap['KEBAKARAN'], durationDays: 4 },
-      { name: 'K3 PAA', description: 'Pelatihan K3 Pesawat Angkat dan Angkut', bidangId: bidangMap['PAA'], durationDays: 5 },
-      { name: 'K3 PTP', description: 'Pelatihan K3 Pesawat Tenaga dan Produksi', bidangId: bidangMap['PTP'], durationDays: 5 },
-      { name: 'K3 PUBT', description: 'Pelatihan K3 Pesawat Uap dan Bejana Tekanan', bidangId: bidangMap['PUBT'], durationDays: 5 },
-      { name: 'K3 LAS', description: 'Pelatihan K3 Pengelasan', bidangId: bidangMap['LAS'], durationDays: 3 },
-      { name: 'K3 KIMIA', description: 'Pelatihan K3 Bahan Kimia Berbahaya', bidangId: bidangMap['KIMIA'], durationDays: 4 },
-      { name: 'K3 RUANG TERBATAS', description: 'Pelatihan K3 Bekerja di Ruang Terbatas', bidangId: bidangMap['KIMIA'], durationDays: 2 },
-      { name: 'K3 PEKERJAAN PADA KETINGGIAN', description: 'Pelatihan K3 Bekerja pada Ketinggian', bidangId: bidangMap['KETINGGIAN'], durationDays: 3 },
-      { name: 'K3 KESEHATAN KERJA', description: 'Pelatihan Kesehatan dan Higiene Kerja', bidangId: bidangMap['KESEHATAN'], durationDays: 4 },
-      { name: 'TKBT 2', description: 'Teknisi Keselamatan Bejana Tekan Tingkat 2', bidangId: bidangMap['PUBT'], durationDays: 5 },
-      { name: 'TKBT 1', description: 'Teknisi Keselamatan Bejana Tekan Tingkat 1', bidangId: bidangMap['PUBT'], durationDays: 4 },
-      { name: 'TKPK 1', description: 'Teknisi Keselamatan Pesawat Khusus Tingkat 1', bidangId: bidangMap['PAA'], durationDays: 4 },
-      { name: 'TKPK 2', description: 'Teknisi Keselamatan Pesawat Khusus Tingkat 2', bidangId: bidangMap['PAA'], durationDays: 5 },
-    ];
-
-    for (const program of trainingProgramsList) {
-      await prisma.trainingProgram.upsert({
-        where: { name: program.name },
-        update: {},
-        create: program,
-      });
-    }
-    console.log(`✅ ${trainingProgramsList.length} Training Programs created`);
 
     // 7. Create PIC (Person In Charge) - NEW
     console.log('\n👔 Seeding PIC (Person In Charge)...');
@@ -254,10 +254,10 @@ async function main() {
     console.log('   Password: admin123');
     console.log('\n📊 Seeded Data Summary:');
     console.log(`   - ${bidangList.length} Bidang (sectors)`);
+    console.log(`   - ${trainingProgramsList.length} Training Programs`);
     console.log(`   - ${classList.length} Training Classes`);
     console.log(`   - ${personnelTypesList.length} Personnel Types`);
     console.log(`   - ${docTypesList.length} Document Types`);
-    console.log(`   - ${trainingProgramsList.length} Training Programs`);
     console.log(`   - ${picList.length} PIC (Person In Charge)`);
     console.log(`   - ${marketingList.length} Marketing`);
     console.log(`   - ${programTypeList.length} Program Types`);
