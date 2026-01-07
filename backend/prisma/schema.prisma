@@ -19,9 +19,9 @@ model User {
   phone     String?
   role      String    @default("admin")
   status    String    @default("active")  // active, inactive
-  lastLogin DateTime? @map("last_login")  // Maps to last_login column in database
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  last_login DateTime? // Track last login timestamp
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
@@ -38,8 +38,8 @@ model Province {
   id        Int       @id @default(autoincrement())
   code      String    @unique @db.VarChar(10)  // e.g., "11", "12"
   name      String    @unique @db.VarChar(255) // e.g., "ACEH", "SUMATERA UTARA"
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   regencies Regency[]
 
@@ -55,8 +55,8 @@ model Regency {
   type        String    @default("regency") @db.VarChar(20) // "regency" or "city"
   provinceId  Int
   province    Province  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
 
   districts   District[]
 
@@ -74,8 +74,8 @@ model District {
   name      String    @db.VarChar(255)         // e.g., "Bakongan", "Medan Maimun"
   regencyId Int
   regency   Regency   @relation(fields: [regencyId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   villages  Village[]
 
@@ -93,8 +93,8 @@ model Village {
   type      String    @default("village") @db.VarChar(20) // "village" or "urban_village" (desa/kelurahan)
   districtId Int
   district  District  @relation(fields: [districtId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   @@unique([code, districtId])
   @@index([districtId])
@@ -110,8 +110,8 @@ model Bidang {
   id          Int                  @id @default(autoincrement())
   name        String               @unique
   description String?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
 
   trainingPrograms TrainingProgram[]
 }
@@ -127,8 +127,8 @@ model TrainingProgram {
   minParticipants  Int                  @default(8)
   maxParticipants  Int                  @default(25)
   status           String               @default("active") // active, inactive
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @updatedAt
 
   links RegistrationLink[]
 
@@ -140,8 +140,8 @@ model TrainingClass {
   id        Int                  @id @default(autoincrement())
   name      String               @unique
   level     Int                  @default(1)
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
 
   links RegistrationLink[]
 }
@@ -150,8 +150,8 @@ model TrainingClass {
 model PersonnelType {
   id        Int                  @id @default(autoincrement())
   name      String               @unique
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
 
   links RegistrationLink[]
 }
@@ -160,8 +160,8 @@ model PersonnelType {
 model DocumentType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 }
 
 // Equipment Types (e.g., MOBILE CRANE, TOWER CRANE)
@@ -169,16 +169,16 @@ model EquipmentType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
   bidangId  Int?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 }
 
 // PIC (Person In Charge) - NEW
 model PIC {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   links RegistrationLink[]
 
@@ -189,8 +189,8 @@ model PIC {
 model Marketing {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   links RegistrationLink[]
 
@@ -202,8 +202,8 @@ model ProgramType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
   description String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
 
   links RegistrationLink[]
 
@@ -239,8 +239,8 @@ model RegistrationLink {
   currentRegistrations Int      @default(0)
   expiryDate           DateTime
   waGroupLink          String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
 
   registrations        Registration[]
   requiredDocuments    RequiredDocument[]
@@ -260,7 +260,7 @@ model RequiredDocument {
   documentType       String    // surat, ijazah, ktp, sk, foto, bukti
   displayName        String
   isRequired         Boolean   @default(true)
-  createdAt          DateTime  @default(now())
+  created_at          DateTime  @default(now())
 
   @@index([registrationLinkId])
 }
@@ -282,8 +282,8 @@ model Registration {
   address              String?
   submissionStatus     String   @default("submitted") // submitted, incomplete, approved, rejected
   submittedAt          DateTime @default(now())
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
 
   documents    TraineeDocument[]
   certificate  Certificate?
@@ -304,7 +304,7 @@ model TraineeDocument {
   mimeType       String?
   uploadStatus   String   @default("uploaded") // uploaded, verified, rejected
   uploadedAt     DateTime @default(now())
-  createdAt      DateTime @default(now())
+  created_at      DateTime @default(now())
 
   @@index([registrationId])
 }
@@ -323,7 +323,7 @@ model Certificate {
   verificationCode String   @unique @default(cuid())
   status           String   @default("issued") // issued, pending, revoked
   issuedAt         DateTime @default(now())
-  createdAt        DateTime @default(now())
+  created_at        DateTime @default(now())
 
   @@index([registrationId])
 }
@@ -339,7 +339,7 @@ model Notification {
   content        String?
   status         String   @default("sent") // sent, failed, pending
   sentAt         DateTime?
-  createdAt      DateTime @default(now())
+  created_at      DateTime @default(now())
 
   @@index([registrationId])
   @@index([status])
@@ -355,8 +355,8 @@ model AuditLog {
   entityId   Int?
   changes    Json?
   ipAddress  String?
-  createdAt  DateTime  @default(now())
+  created_at  DateTime  @default(now())
 
   @@index([userId])
-  @@index([createdAt])
+  @@index([created_at])
 }
