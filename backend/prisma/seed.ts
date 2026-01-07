@@ -3,12 +3,147 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+/**
+ * Automatic schema repair
+ * Converts old personnel_type_id column to bidang_id if needed
+ */
+async function fixSchema() {
+  console.log('\n🔧 Starting automatic schema repair...');
+  
+  try {
+    // Check if column exists in database
+    const result = await prisma.$queryRaw<Array<{ column_name: string }>>(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'registration_links' 
+      AND column_name IN ('personnel_type_id', 'bidang_id')
+    `);
+
+    const hasPersonnelTypeId = result.some(col => col.column_name === 'personnel_type_id');
+    const hasBidangId = result.some(col => col.column_name === 'bidang_id');
+
+    console.log('📊 Current schema state:');
+    console.log(`   - personnel_type_id column: ${hasPersonnelTypeId ? '✅ EXISTS' : '❌ MISSING'}`);
+    console.log(`   - bidang_id column: ${hasBidangId ? '✅ EXISTS' : '❌ MISSING'}`);
+
+    // Fix 1: If old column exists but new one doesn't, rename it
+    if (hasPersonnelTypeId && !hasBidangId) {
+      console.log('\n🔄 Fixing schema: Renaming personnel_type_id → bidang_id...');
+      
+      try {
+        // First, drop the foreign key constraint if it exists
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE registration_links 
+          DROP CONSTRAINT IF EXISTS registration_links_personnel_type_id_fkey
+        `);
+        console.log('   ✅ Dropped old foreign key');
+      } catch (e) {
+        console.log('   ℹ️  No old foreign key to drop (OK)');
+      }
+
+      try {
+        // Rename the column
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE registration_links 
+          RENAME COLUMN personnel_type_id TO bidang_id
+        `);
+        console.log('   ✅ Column renamed');
+      } catch (e) {
+        console.log('   ℹ️  Column rename might have already happened (OK)');
+      }
+    }
+
+    // Fix 2: If new column doesn't exist, create it
+    if (!hasBidangId) {
+      console.log('\n🔧 Creating bidang_id column...');
+      
+      try {
+        // Add the column if it doesn't exist
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE registration_links 
+          ADD COLUMN IF NOT EXISTS bidang_id INTEGER NOT NULL DEFAULT 1
+        `);
+        console.log('   ✅ bidang_id column created');
+
+        // Add the foreign key constraint
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE registration_links 
+          ADD CONSTRAINT registration_links_bidang_id_fkey 
+          FOREIGN KEY (bidang_id) REFERENCES bidangs(id) ON DELETE CASCADE
+        `);
+        console.log('   ✅ Foreign key constraint added');
+      } catch (e: any) {
+        if (e.message.includes('already exists')) {
+          console.log('   ℹ️  Column already exists (OK)');
+        } else {
+          console.error('   ❌ Error adding column:', e.message);
+          throw e;
+        }
+      }
+    }
+
+    // Fix 3: Add index if missing
+    try {
+      const indexCheck = await prisma.$queryRaw<Array<{ indexname: string }>>(`
+        SELECT indexname 
+        FROM pg_indexes 
+        WHERE tablename = 'registration_links' 
+        AND indexname LIKE '%bidang_id%'
+      `);
+
+      if (!indexCheck || indexCheck.length === 0) {
+        console.log('\n📑 Adding index for bidang_id...');
+        await prisma.$executeRawUnsafe(`
+          CREATE INDEX IF NOT EXISTS registration_links_bidang_id_idx 
+          ON registration_links(bidang_id)
+        `);
+        console.log('   ✅ Index created');
+      }
+    } catch (e) {
+      console.log('   ℹ️  Index might already exist (OK)');
+    }
+
+    // Verify final schema
+    const finalResult = await prisma.$queryRaw<Array<{ column_name: string }>>(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'registration_links' 
+      AND column_name IN ('personnel_type_id', 'bidang_id')
+    `);
+
+    const finalHasPersonnelTypeId = finalResult.some(col => col.column_name === 'personnel_type_id');
+    const finalHasBidangId = finalResult.some(col => col.column_name === 'bidang_id');
+
+    console.log('\n✅ Final schema state:');
+    console.log(`   - personnel_type_id column: ${finalHasPersonnelTypeId ? '⚠️  STILL EXISTS' : '✅ REMOVED'}`);
+    console.log(`   - bidang_id column: ${finalHasBidangId ? '✅ EXISTS' : '❌ MISSING'}`);
+
+    if (!finalHasBidangId) {
+      throw new Error('❌ Schema repair failed: bidang_id column still missing!');
+    }
+
+    console.log('\n🎉 Schema repair completed successfully!');
+    return true;
+  } catch (error) {
+    console.error('❌ Schema repair failed:', error);
+    throw error;
+  }
+}
+
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('🌱 Starting database seeding process...');
 
   try {
-    // 1. Create admin user
-    console.log('\n📝 Seeding Users...');
+    // Step 1: Fix schema FIRST (before any seeding)
+    console.log('\n==========================================');
+    console.log('STEP 1: Automatic Schema Repair');
+    console.log('==========================================');
+    await fixSchema();
+
+    // Step 2: Create admin user
+    console.log('\n==========================================');
+    console.log('STEP 2: Seeding Users');
+    console.log('==========================================');
     const hashedPassword = await bcrypt.hash('admin123', 10);
     
     const adminUser = await prisma.user.upsert({
@@ -24,8 +159,10 @@ async function main() {
     });
     console.log('✅ Admin user created/updated:', adminUser.email);
 
-    // 2. Create bidang (sectors) - Real K3 sectors
-    console.log('\n📋 Seeding Bidang (Sectors)...');
+    // Step 3: Create bidang (sectors)
+    console.log('\n==========================================');
+    console.log('STEP 3: Seeding Bidang (Sectors)');
+    console.log('==========================================');
     const bidangList = [
       { name: 'PAA (PESAWAT ANGKAT DAN ANGKUT)', description: 'Keselamatan Pesawat Angkat dan Angkut' },
       { name: 'AK3U (KEAHLIAN K3 UMUM)', description: 'Keahlian Keselamatan dan Kesehatan Kerja Umum' },
@@ -71,8 +208,10 @@ async function main() {
       if (b.name.includes('SISTEM MANAJEMEN')) bidangMap['SMK3'] = b.id;
     });
 
-    // 3. Create training programs - Real K3 Training Programs
-    console.log('\n📚 Seeding Training Programs...');
+    // Step 4: Create training programs
+    console.log('\n==========================================');
+    console.log('STEP 4: Seeding Training Programs');
+    console.log('==========================================');
     const trainingProgramsList = [
       { name: 'AHLI K3 UMUM', description: 'Pelatihan Ahli Keselamatan dan Kesehatan Kerja Umum', bidangId: bidangMap['AK3U'], durationDays: 12 },
       { name: 'AUDITOR SMK3', description: 'Pelatihan Auditor Sistem Manajemen K3', bidangId: bidangMap['SMK3'], durationDays: 5 },
@@ -103,8 +242,10 @@ async function main() {
     }
     console.log(`✅ ${trainingProgramsList.length} Training Programs created`);
 
-    // 4. Create training classes - Real K3 classes
-    console.log('\n🎓 Seeding Training Classes...');
+    // Step 5: Create training classes
+    console.log('\n==========================================');
+    console.log('STEP 5: Seeding Training Classes');
+    console.log('==========================================');
     const classList = [
       { name: 'AHLI', level: 3 },
       { name: 'SUPERVISI SCAFFOLDING', level: 3 },
@@ -139,8 +280,10 @@ async function main() {
     }
     console.log(`✅ ${classList.length} Training Classes created`);
 
-    // 5. Create personnel types
-    console.log('\n👥 Seeding Personnel Types...');
+    // Step 6: Create personnel types
+    console.log('\n==========================================');
+    console.log('STEP 6: Seeding Personnel Types');
+    console.log('==========================================');
     const personnelTypesList = [
       { name: 'OPERATOR MESIN' },
       { name: 'PEKERJA KONSTRUKSI' },
@@ -160,8 +303,10 @@ async function main() {
     }
     console.log(`✅ ${personnelTypesList.length} Personnel Types created`);
 
-    // 6. Create document types
-    console.log('\n📄 Seeding Document Types...');
+    // Step 7: Create document types
+    console.log('\n==========================================');
+    console.log('STEP 7: Seeding Document Types');
+    console.log('==========================================');
     const docTypesList = [
       { name: 'Sertifikat Pelatihan' },
       { name: 'Ijazah' },
@@ -180,8 +325,10 @@ async function main() {
     }
     console.log(`✅ ${docTypesList.length} Document Types created`);
 
-    // 7. Create PIC (Person In Charge) - NEW
-    console.log('\n👔 Seeding PIC (Person In Charge)...');
+    // Step 8: Create PIC (Person In Charge)
+    console.log('\n==========================================');
+    console.log('STEP 8: Seeding PIC (Person In Charge)');
+    console.log('==========================================');
     const picList = [
       'Ghaida Trisnanda',
       'Yuyun',
@@ -201,8 +348,10 @@ async function main() {
     }
     console.log(`✅ ${picList.length} PIC created`);
 
-    // 8. Create Marketing - NEW
-    console.log('\n📢 Seeding Marketing Personnel...');
+    // Step 9: Create Marketing
+    console.log('\n==========================================');
+    console.log('STEP 9: Seeding Marketing Personnel');
+    console.log('==========================================');
     const marketingList = [
       'Agustyani',
       'Atikah',
@@ -227,8 +376,10 @@ async function main() {
     }
     console.log(`✅ ${marketingList.length} Marketing personnel created`);
 
-    // 9. Create Program Types (Reguler, Inhouse, BNSP) - NEW
-    console.log('\n🎯 Seeding Program Types...');
+    // Step 10: Create Program Types
+    console.log('\n==========================================');
+    console.log('STEP 10: Seeding Program Types');
+    console.log('==========================================');
     const programTypeList = [
       { name: 'Reguler', description: 'Program Reguler' },
       { name: 'Inhouse', description: 'Program Inhouse' },
@@ -244,26 +395,32 @@ async function main() {
     }
     console.log(`✅ ${programTypeList.length} Program Types created`);
 
-    // Verify user was created
+    // Final verification
+    console.log('\n==========================================');
+    console.log('STEP 11: Final Verification');
+    console.log('==========================================');
     const userCount = await prisma.user.count();
-    console.log('\n✅ User count in database:', userCount);
+    const bidangCount = await prisma.bidang.count();
+    const trainingCount = await prisma.trainingProgram.count();
+    const classCount = await prisma.trainingClass.count();
 
-    console.log('\n🎉 Database seeding completed successfully!');
+    console.log('✅ Database seeding completed successfully!');
     console.log('\n📝 Test Login Credentials:');
     console.log('   Email: admin@deltaindo.com');
     console.log('   Password: admin123');
     console.log('\n📊 Seeded Data Summary:');
-    console.log(`   - ${bidangList.length} Bidang (sectors)`);
-    console.log(`   - ${trainingProgramsList.length} Training Programs`);
-    console.log(`   - ${classList.length} Training Classes`);
-    console.log(`   - ${personnelTypesList.length} Personnel Types`);
-    console.log(`   - ${docTypesList.length} Document Types`);
-    console.log(`   - ${picList.length} PIC (Person In Charge)`);
-    console.log(`   - ${marketingList.length} Marketing`);
-    console.log(`   - ${programTypeList.length} Program Types`);
-    console.log(`   - ${userCount} Admin User(s)`);
+    console.log(`   - ${bidangCount} Bidang (sectors) ✅`);
+    console.log(`   - ${trainingCount} Training Programs ✅`);
+    console.log(`   - ${classCount} Training Classes ✅`);
+    console.log(`   - ${personnelTypesList.length} Personnel Types ✅`);
+    console.log(`   - ${docTypesList.length} Document Types ✅`);
+    console.log(`   - ${picList.length} PIC (Person In Charge) ✅`);
+    console.log(`   - ${marketingList.length} Marketing ✅`);
+    console.log(`   - ${programTypeList.length} Program Types ✅`);
+    console.log(`   - ${userCount} Admin User(s) ✅`);
+    console.log('\n🚀 Ready to use!');
   } catch (error) {
-    console.error('❌ Seeding error:', error);
+    console.error('\n❌ Seeding error:', error);
     throw error;
   }
 }
