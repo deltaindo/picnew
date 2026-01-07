@@ -101,7 +101,7 @@ export default function RegisterPage() {
   const [subdistricts, setSubdistricts] = useState<CascadingLocation[]>([]);
   const [villages, setVillages] = useState<CascadingLocation[]>([]);
 
-  // Cascading training states - CORRECTED
+  // Cascading training states
   const [bidangOptions, setBidangOptions] = useState<{ id: number; name: string }[]>([]);
   const [allTrainingPrograms, setAllTrainingPrograms] = useState<any[]>([]);
   const [filteredTrainingPrograms, setFilteredTrainingPrograms] = useState<any[]>([]);
@@ -127,7 +127,7 @@ export default function RegisterPage() {
   const fetchRegistrationLink = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/public/links/${token}`);
+      const response = await axios.get(`${API_BASE_URL}/api/public/links/public/validate/${token}`);
       const data = response.data.data;
       
       // Set dropdown options from link response
@@ -151,7 +151,7 @@ export default function RegisterPage() {
     }
   };
 
-  // CORRECTED: Filter training programs by selected bidang
+  // Filter training programs by selected bidang
   const handleBidangChange = (bidangId: string) => {
     setFormData({ ...formData, bidang_id: bidangId, training_id: '', kelas_id: '' });
     
@@ -163,7 +163,7 @@ export default function RegisterPage() {
     }
   };
 
-  // TrainingProgram selected - no filtering needed for TrainingClass (it's standalone)
+  // TrainingProgram selected
   const handleTrainingProgramChange = (programId: string) => {
     setFormData({ ...formData, training_id: programId, kelas_id: '' });
   };
@@ -225,7 +225,7 @@ export default function RegisterPage() {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Handle cascading dropdowns for LOCATION only (training cascading handled separately)
+    // Handle cascading dropdowns for LOCATION only
     if (name === 'province_id') fetchDistricts(value);
     if (name === 'district_id') fetchSubdistricts(value);
     if (name === 'subdistrict_id') fetchVillages(value);
@@ -474,7 +474,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          {/* Step 1: Training Selection - CORRECTED */}
+          {/* Step 1: Training Selection */}
           {currentStep === 1 && (
             <div className="space-y-4">
               <h3 className={`text-lg font-semibold mb-4 ${
