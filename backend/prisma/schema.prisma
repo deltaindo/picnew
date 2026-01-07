@@ -118,6 +118,7 @@ model Bidang {
   updatedAt   DateTime             @updatedAt @map("updated_at")
 
   trainingPrograms TrainingProgram[]
+  links RegistrationLink[]
 
   @@map("bidangs")
 }
@@ -161,8 +162,6 @@ model PersonnelType {
   name      String               @unique
   createdAt DateTime             @default(now()) @map("created_at")
   updatedAt DateTime             @updatedAt @map("updated_at")
-
-  links RegistrationLink[]
 
   @@map("personnel_types")
 }
@@ -236,8 +235,8 @@ model RegistrationLink {
   trainingProgram      TrainingProgram  @relation(fields: [trainingProgramId], references: [id], onDelete: Cascade)
   trainingClassId      Int       @map("training_class_id")
   trainingClass        TrainingClass    @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
-  personnelTypeId      Int       @map("personnel_type_id")
-  personnelType        PersonnelType    @relation(fields: [personnelTypeId], references: [id], onDelete: Cascade)
+  bidangId             Int       @map("bidang_id")
+  bidang               Bidang           @relation(fields: [bidangId], references: [id], onDelete: Cascade)
   createdByAdminId     Int       @map("created_by_admin_id")
   createdByAdmin       User     @relation(fields: [createdByAdminId], references: [id])
   
@@ -263,6 +262,7 @@ model RegistrationLink {
   requiredDocuments    RequiredDocument[]
 
   @@index([trainingProgramId])
+  @@index([bidangId])
   @@index([createdByAdminId])
   @@index([picId])
   @@index([marketingId])
