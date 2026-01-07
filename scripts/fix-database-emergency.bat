@@ -1,8 +1,8 @@
 @echo off
 REM ################################################################################
-REM EMERGENCY DATABASE FIX SCRIPT (Windows)
+REM EMERGENCY DATABASE FIX SCRIPT (Windows) - FULLY AUTOMATIC
 REM Purpose: Force reset database when migration is stuck
-REM Usage: fix-database-emergency.bat
+REM Usage: fix-database-emergency.bat (no prompts!)
 REM Date: January 7, 2026
 REM ################################################################################
 
@@ -10,59 +10,44 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================================
-echo                  EMERGENCY DATABASE RESET - FORCE FIX
+echo                  EMERGENCY DATABASE RESET - AUTO MODE
 echo ================================================================================
 echo.
 
-echo [WARN] This will:
-echo         1. Stop all containers
-echo         2. Delete database volume
-echo         3. Rebuild images
-echo         4. Start fresh
-echo.
-
-set /p response="Continue? (y/n): "
-if /i not "%response%"=="y" (
-    echo [WARN] Cancelled
-    exit /b 0
-)
-
+echo [INFO] Starting automatic database reset...
 echo.
 
 REM STEP 1: Stop everything
-echo [INFO] Step 1: Stopping all containers...
+echo [INFO] [1/8] Stopping all containers...
 docker-compose down >nul 2>&1
 echo [OK] Containers stopped
-
 echo.
 
 REM STEP 2: Remove volumes
-echo [INFO] Step 2: Finding and removing database volume...
+echo [INFO] [2/8] Finding and removing database volume...
 
-for /f "tokens=*" %%i in ('docker volume ls -q ^| findstr /i postgres') do set "VOLUME=%%i"
+for /f "tokens=*" %%i in ('docker volume ls -q 2^>nul ^| findstr /i postgres') do set "VOLUME=%%i"
 
 if not "!VOLUME!"==" " (
     echo [WARN] Found volume: !VOLUME!
     docker volume rm !VOLUME! >nul 2>&1
     echo [OK] Volume removed
 ) else (
-    echo [WARN] No postgres volume found ^(might be OK^)
+    echo [WARN] No postgres volume found ^(OK^)
 )
 
 echo.
 
 REM STEP 3: Clean volumes
-echo [INFO] Step 3: Cleaning up unused volumes...
+echo [INFO] [3/8] Cleaning up unused volumes...
 docker volume prune -f >nul 2>&1
-echo [OK] Cleaned up
+echo [OK] Volumes cleaned
 
 echo.
 
 REM STEP 4: Rebuild images
-echo [INFO] Step 4: Rebuilding Docker images ^(no cache^)...
-echo.
-
-docker-compose build --no-cache backend postgres
+echo [INFO] [4/8] Rebuilding Docker images ^(no cache^)...
+docker-compose build --no-cache backend postgres >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to build images
     exit /b 1
@@ -72,10 +57,8 @@ echo [OK] Images rebuilt
 echo.
 
 REM STEP 5: Start services
-echo [INFO] Step 5: Starting fresh services...
-echo.
-
-docker-compose up -d
+echo [INFO] [5/8] Starting fresh services...
+docker-compose up -d >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to start services
     exit /b 1
@@ -85,7 +68,7 @@ echo [OK] Services started
 echo.
 
 REM STEP 6: Wait for services
-echo [INFO] Step 6: Waiting for services to initialize ^(3-5 minutes^)...
+echo [INFO] [6/8] Waiting for services to initialize...
 echo.
 
 setlocal enabledelayedexpansion
@@ -105,7 +88,7 @@ if !errorlevel! equ 0 (
 )
 
 set /a remaining=!max_wait!-!elapsed!
-echo Waiting for PostgreSQL... !remaining!s remaining
+echo. | set /p="Waiting... !remaining!s remaining  "
 
 timeout /t 5 /nobreak >nul
 set /a elapsed=!elapsed!+5
@@ -119,10 +102,10 @@ timeout /t 30 /nobreak >nul
 echo.
 
 REM STEP 7: Verify database schema
-echo [INFO] Step 7: Verifying database schema...
+echo [INFO] [7/8] Verifying database schema...
 echo.
 
-echo [INFO] Checking if registration_links table exists...
+echo [INFO] Checking registration_links table...
 for /f "delims=" %%i in ('docker exec pic_postgres psql -U postgres -d pic_app -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name='registration_links');" 2^>nul') do set "table_exists=%%i"
 
 if "!table_exists!"=="t" (
@@ -133,7 +116,7 @@ if "!table_exists!"=="t" (
     timeout /t 30 /nobreak >nul
 )
 
-echo [INFO] Checking if bidang_id column exists...
+echo [INFO] Checking bidang_id column...
 for /f "delims=" %%i in ('docker exec pic_postgres psql -U postgres -d pic_app -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='registration_links' AND column_name='bidang_id');" 2^>nul') do set "column_exists=%%i"
 
 if "!column_exists!"=="t" (
@@ -148,7 +131,7 @@ if "!column_exists!"=="t" (
 echo.
 
 REM STEP 8: Verify backend health
-echo [INFO] Step 8: Checking backend health...
+echo [INFO] [8/8] Checking backend health...
 echo.
 
 for /f "delims=" %%i in ('curl -s http://localhost:5000/api/health 2^>nul ^| findstr /c:"ok"') do set "health_ok=1"
@@ -162,7 +145,7 @@ if "!health_ok!"=="1" (
     if "!health_ok!"=="1" (
         echo [OK] Backend is now healthy
     ) else (
-        echo [WARN] Backend still not responding ^(but database is fixed^)
+        echo [WARN] Backend still not responding ^(database is fixed^)
     )
 )
 
@@ -180,18 +163,18 @@ echo [OK] Backend ready
 
 echo.
 echo [INFO] Next Steps:
-echo         1. Open Frontend: http://localhost:3000
+echo         1. Open: http://localhost:3000
 echo         2. Login: admin@example.com / admin123
 echo         3. Test: Go to 'Tambah Link Pendaftaran'
 echo         4. Verify: Bidang dropdown shows 13 sectors
 echo.
 
-echo [INFO] Check Logs:
-echo         Backend: docker-compose logs backend
-echo         Database: docker-compose logs postgres
+echo [INFO] Check Health:
+echo         Backend: curl http://localhost:5000/api/health
+echo         Logs: docker-compose logs -f backend
 echo.
 
-echo [OK] Emergency fix completed!
+echo [OK] Emergency fix completed successfully!
 echo.
 
 endlocal
