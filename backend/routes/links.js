@@ -81,7 +81,7 @@ router.get("/", auth, async (req, res) => {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        created_at: "desc",
       },
     });
 
