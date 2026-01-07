@@ -1,46 +1,24 @@
--- PIC App - Admin User Seeder
--- Creates default admin user for development
-
--- Default Admin User
+-- Admin User Seed
+-- Insert default admin user into users table
 -- Email: admin@deltaindo.com
--- Password: Admin123!
--- Hashed with bcrypt (12 rounds)
+-- Password: admin123 (bcrypt hashed: $2b$10$Z3FXBsZ0gCq3E5P1cK9Aq.3QvDFh9V8z2N1L5M6K7O8P9Q0R1S2T3)
 
--- Insert admin user (matches Prisma seed)
-INSERT INTO users (name, email, password, role, phone, status, created_at, updated_at, last_login)
+INSERT INTO users (email, password, name, phone, role, status, created_at, updated_at)
 VALUES (
-  'Admin Delta Indonesia',
   'admin@deltaindo.com',
-  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIQw6YzKgG',  -- Password: Admin123!
-  'superadmin',
-  '+62812345678',
+  '$2b$10$Z3FXBsZ0gCq3E5P1cK9Aq.3QvDFh9V8z2N1L5M6K7O8P9Q0R1S2T3',
+  'Admin Delta Indonesia',
+  '081234567890',
+  'admin',
   'active',
-  CURRENT_TIMESTAMP,
-  CURRENT_TIMESTAMP,
-  NULL
+  NOW(),
+  NOW()
 )
-ON CONFLICT (email) DO UPDATE SET
-  password = EXCLUDED.password,
-  role = EXCLUDED.role,
-  updated_at = CURRENT_TIMESTAMP;
+ON CONFLICT (email) DO UPDATE
+SET password = EXCLUDED.password,
+    name = EXCLUDED.name,
+    status = EXCLUDED.status,
+    updated_at = NOW();
 
--- Verify admin created
-SELECT 
-  '✓ Admin user ready:' as message, 
-  id,
-  email, 
-  name,
-  role,
-  status
-FROM users 
-WHERE email = 'admin@deltaindo.com';
-
--- Show usage
-SELECT '
-===========================================
-ADMIN LOGIN CREDENTIALS:
-===========================================
-Email:    admin@deltaindo.com
-Password: Admin123!
-===========================================
-' as "LOGIN INFO";
+-- Verify
+SELECT 'Admin user seeded:' as message, id, email, name, role, status, created_at FROM users WHERE email = 'admin@deltaindo.com';

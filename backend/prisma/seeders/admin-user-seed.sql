@@ -4,13 +4,14 @@
 -- Password: admin123 (bcrypt hashed)
 -- Run this if the TypeScript seeder fails
 
-INSERT INTO users (email, password, name, phone, role, created_at, updated_at)
+INSERT INTO users (email, password, name, phone, role, status, created_at, updated_at)
 VALUES (
   'admin@deltaindo.com',
   '$2b$10$Z3FXBsZ0gCq3E5P1cK9Aq.3QvDFh9V8z2N1L5M6K7O8P9Q0R1S2T3',
   'Admin Delta Indonesia',
   '081234567890',
   'admin',
+  'active',
   NOW(),
   NOW()
 )
