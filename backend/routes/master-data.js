@@ -14,11 +14,11 @@ const TABLE_MAPPING = {
 
 // Column mapping - which columns exist for each table
 const COLUMN_MAPPING = {
-  'Bidang': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
-  'TrainingClass': ['id', 'name', 'level', 'createdAt', 'updatedAt'],  // NO description!
-  'TrainingProgram': ['id', 'name', 'description', 'createdAt', 'updatedAt'],
-  'PersonnelType': ['id', 'name', 'createdAt', 'updatedAt'],  // NO description, NO level!
-  'DocumentType': ['id', 'name', 'createdAt', 'updatedAt']  // NO description, NO level!
+  'Bidang': ['id', 'name', 'description', 'created_at', 'updated_at'],
+  'TrainingClass': ['id', 'name', 'level', 'created_at', 'updated_at'],  // NO description!
+  'TrainingProgram': ['id', 'name', 'description', 'created_at', 'updated_at'],
+  'PersonnelType': ['id', 'name', 'created_at', 'updated_at'],  // NO description, NO level!
+  'DocumentType': ['id', 'name', 'created_at', 'updated_at']  // NO description, NO level!
 };
 
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
@@ -46,7 +46,7 @@ router.get('/:type', auth, async (req, res) => {
     } else if (tableName === 'TrainingProgram') {
       selectClause += ', description';
     }
-    selectClause += ', "createdAt"';
+    selectClause += ', created_at';
     
     const result = await pool.query(
       `SELECT ${selectClause} FROM "${tableName}" ORDER BY name ASC`
@@ -93,27 +93,27 @@ router.post('/:type', auth, async (req, res) => {
     
     if (tableName === 'Bidang') {
       // Bidang has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
+      query = `INSERT INTO "${tableName}" (name, description, created_at, updated_at) 
                VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
+               RETURNING id, name, description, created_at`;
       params.push(description || null);
     } else if (tableName === 'TrainingClass') {
       // TrainingClass has level, NOT description
-      query = `INSERT INTO "${tableName}" (name, level, "createdAt", "updatedAt") 
+      query = `INSERT INTO "${tableName}" (name, level, created_at, updated_at) 
                VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, level, "createdAt"`;
+               RETURNING id, name, level, created_at`;
       params.push(level || 1);
     } else if (tableName === 'TrainingProgram') {
       // TrainingProgram has description
-      query = `INSERT INTO "${tableName}" (name, description, "createdAt", "updatedAt") 
+      query = `INSERT INTO "${tableName}" (name, description, created_at, updated_at) 
                VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, "createdAt"`;
+               RETURNING id, name, description, created_at`;
       params.push(description || null);
     } else {
       // PersonnelType and DocumentType only have name
-      query = `INSERT INTO "${tableName}" (name, "createdAt", "updatedAt") 
+      query = `INSERT INTO "${tableName}" (name, created_at, updated_at) 
                VALUES ($1, NOW(), NOW()) 
-               RETURNING id, name, "createdAt"`;
+               RETURNING id, name, created_at`;
     }
     
     const result = await pool.query(query, params);
