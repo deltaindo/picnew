@@ -62,7 +62,7 @@ router.get("/", auth, async (req, res) => {
             level: true,
           },
         },
-        personnelType: {
+        bidang: {
           select: {
             id: true,
             name: true,
@@ -81,7 +81,7 @@ router.get("/", auth, async (req, res) => {
         },
       },
       orderBy: {
-        created_at: "desc",
+        createdAt: "desc",
       },
     });
 
@@ -121,7 +121,7 @@ router.get("/:id", auth, async (req, res) => {
       include: {
         trainingProgram: true,
         trainingClass: true,
-        personnelType: true,
+        bidang: true,
         createdByAdmin: {
           select: {
             id: true,
@@ -169,7 +169,7 @@ router.get("/:id", auth, async (req, res) => {
  * Required fields in request body:
  * - trainingProgramId (integer)
  * - trainingClassId (integer)
- * - personnelTypeId (integer)
+ * - bidangId (integer)
  * - maxRegistrations (integer)
  * - expiryDate (ISO datetime string)
  *
@@ -191,7 +191,7 @@ router.post("/", auth, async (req, res) => {
     const {
       trainingProgramId,
       trainingClassId,
-      personnelTypeId,
+      bidangId,
       maxRegistrations = 25,
       expiryDate,
       waGroupLink,
@@ -215,10 +215,10 @@ router.post("/", auth, async (req, res) => {
       });
     }
 
-    if (!personnelTypeId) {
+    if (!bidangId) {
       return res.status(400).json({
         success: false,
-        message: "personnelTypeId is required",
+        message: "bidangId is required",
       });
     }
 
@@ -253,7 +253,7 @@ router.post("/", auth, async (req, res) => {
         uniqueToken: uuidv4(),
         trainingProgramId: parseInt(trainingProgramId),
         trainingClassId: parseInt(trainingClassId),
-        personnelTypeId: parseInt(personnelTypeId),
+        bidangId: parseInt(bidangId),
         createdByAdminId: userId,
         maxRegistrations: parseInt(maxRegistrations),
         currentRegistrations: 0,
@@ -289,7 +289,7 @@ router.post("/", auth, async (req, res) => {
             level: true,
           },
         },
-        personnelType: {
+        bidang: {
           select: {
             id: true,
             name: true,
@@ -318,7 +318,7 @@ router.post("/", auth, async (req, res) => {
       // Record not found
       return res.status(400).json({
         success: false,
-        message: "Training program, class, or personnel type not found",
+        message: "Training program, class, or bidang not found",
       });
     }
 
@@ -326,7 +326,7 @@ router.post("/", auth, async (req, res) => {
       // Foreign key constraint failed
       return res.status(400).json({
         success: false,
-        message: "Invalid training program, class, or personnel type ID",
+        message: "Invalid training program, class, or bidang ID",
       });
     }
 
@@ -408,7 +408,7 @@ router.put("/:id", auth, async (req, res) => {
       include: {
         trainingProgram: true,
         trainingClass: true,
-        personnelType: true,
+        bidang: true,
         createdByAdmin: {
           select: {
             id: true,
@@ -531,7 +531,7 @@ router.get("/public/validate/:token", async (req, res) => {
             name: true,
           },
         },
-        personnelType: {
+        bidang: {
           select: {
             id: true,
             name: true,
@@ -578,7 +578,7 @@ router.get("/public/validate/:token", async (req, res) => {
         token: link.uniqueToken,
         trainingProgram: link.trainingProgram,
         trainingClass: link.trainingClass,
-        personnelType: link.personnelType,
+        bidang: link.bidang,
         spotsAvailable: link.maxRegistrations - link.currentRegistrations,
         maxRegistrations: link.maxRegistrations,
       },
