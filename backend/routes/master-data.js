@@ -3,22 +3,29 @@ const router = express.Router();
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-// Map frontend types to actual database table names (PascalCase)
+// Map frontend types to actual database table names (snake_case)
+// These MUST match the table names in backend/database/schema.sql
 const TABLE_MAPPING = {
-  'bidang': 'Bidang',
-  'classes': 'TrainingClass',
-  'training_programs': 'TrainingProgram',
-  'personnel_types': 'PersonnelType',
-  'document_types': 'DocumentType'
+  'bidang': 'bidangs',                      // ✅ snake_case
+  'classes': 'training_classes',            // ✅ snake_case
+  'training_programs': 'training_programs', // ✅ snake_case
+  'personnel_types': 'personnel_types',     // ✅ snake_case
+  'document_types': 'document_types',       // ✅ snake_case
+  'pics': 'pics',                           // ✅ NEW
+  'marketing': 'marketings',                // ✅ NEW
+  'program_types': 'program_types'          // ✅ NEW
 };
 
 // Column mapping - which columns exist for each table
 const COLUMN_MAPPING = {
-  'Bidang': ['id', 'name', 'description', 'created_at', 'updated_at'],
-  'TrainingClass': ['id', 'name', 'level', 'created_at', 'updated_at'],  // NO description!
-  'TrainingProgram': ['id', 'name', 'description', 'created_at', 'updated_at'],
-  'PersonnelType': ['id', 'name', 'created_at', 'updated_at'],  // NO description, NO level!
-  'DocumentType': ['id', 'name', 'created_at', 'updated_at']  // NO description, NO level!
+  'bidangs': ['id', 'name', 'description', 'created_at', 'updated_at'],
+  'training_classes': ['id', 'name', 'level', 'created_at', 'updated_at'],
+  'training_programs': ['id', 'name', 'description', 'bidang_id', 'duration_days', 'min_participants', 'max_participants', 'status', 'created_at', 'updated_at'],
+  'personnel_types': ['id', 'name', 'created_at', 'updated_at'],
+  'document_types': ['id', 'name', 'created_at', 'updated_at'],
+  'pics': ['id', 'name', 'created_at', 'updated_at'],
+  'marketings': ['id', 'name', 'created_at', 'updated_at'],
+  'program_types': ['id', 'name', 'description', 'created_at', 'updated_at']
 };
 
 const VALID_TYPES = Object.keys(TABLE_MAPPING);
@@ -39,11 +46,13 @@ router.get('/:type', auth, async (req, res) => {
     
     // Build SELECT clause based on what columns actually exist
     let selectClause = 'id, name';
-    if (tableName === 'Bidang') {
+    if (tableName === 'bidangs') {
       selectClause += ', description';
-    } else if (tableName === 'TrainingClass') {
+    } else if (tableName === 'training_classes') {
       selectClause += ', level';
-    } else if (tableName === 'TrainingProgram') {
+    } else if (tableName === 'training_programs') {
+      selectClause += ', description, bidang_id, duration_days, status';
+    } else if (tableName === 'program_types') {
       selectClause += ', description';
     }
     selectClause += ', created_at';
@@ -91,26 +100,20 @@ router.post('/:type', auth, async (req, res) => {
     let query = '';
     let params = [name.trim()];
     
-    if (tableName === 'Bidang') {
-      // Bidang has description
+    if (tableName === 'bidangs' || tableName === 'program_types') {
+      // Bidang and ProgramType have description
       query = `INSERT INTO "${tableName}" (name, description, created_at, updated_at) 
                VALUES ($1, $2, NOW(), NOW()) 
                RETURNING id, name, description, created_at`;
       params.push(description || null);
-    } else if (tableName === 'TrainingClass') {
+    } else if (tableName === 'training_classes') {
       // TrainingClass has level, NOT description
       query = `INSERT INTO "${tableName}" (name, level, created_at, updated_at) 
                VALUES ($1, $2, NOW(), NOW()) 
                RETURNING id, name, level, created_at`;
       params.push(level || 1);
-    } else if (tableName === 'TrainingProgram') {
-      // TrainingProgram has description
-      query = `INSERT INTO "${tableName}" (name, description, created_at, updated_at) 
-               VALUES ($1, $2, NOW(), NOW()) 
-               RETURNING id, name, description, created_at`;
-      params.push(description || null);
     } else {
-      // PersonnelType and DocumentType only have name
+      // PersonnelType, DocumentType, PIC, Marketing only have name
       query = `INSERT INTO "${tableName}" (name, created_at, updated_at) 
                VALUES ($1, NOW(), NOW()) 
                RETURNING id, name, created_at`;
