@@ -19,9 +19,9 @@ model User {
   phone     String?
   role      String    @default("admin")
   status    String    @default("active")  // active, inactive
-  last_login DateTime? // Track last login timestamp
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  lastLogin DateTime? @map("last_login") // Track last login timestamp
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   links     RegistrationLink[]
   auditLogs AuditLog[]
@@ -38,25 +38,26 @@ model Province {
   id        Int       @id @default(autoincrement())
   code      String    @unique @db.VarChar(10)  // e.g., "11", "12"
   name      String    @unique @db.VarChar(255) // e.g., "ACEH", "SUMATERA UTARA"
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   regencies Regency[]
 
   @@index([code])
   @@index([name])
+  @@map("provinces")
 }
 
 // Regency/City (Kabupaten/Kota) - Level 2
 model Regency {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique @db.VarChar(20)  // e.g., "11.01", "31.71"
-  name        String    @db.VarChar(255)         // e.g., "KAB. ACEH SELATAN", "KOTA MEDAN"
-  type        String    @default("regency") @db.VarChar(20) // "regency" or "city"
-  provinceId  Int
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(20)  // e.g., "11.01", "31.71"
+  name      String    @db.VarChar(255)         // e.g., "KAB. ACEH SELATAN", "KOTA MEDAN"
+  type      String    @default("regency") @db.VarChar(20) // "regency" or "city"
+  provinceId  Int     @map("province_id")
   province    Province  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   districts   District[]
 
@@ -65,6 +66,7 @@ model Regency {
   @@index([code])
   @@index([name])
   @@index([type])
+  @@map("regencies")
 }
 
 // District (Kecamatan) - Level 3
@@ -72,10 +74,10 @@ model District {
   id        Int       @id @default(autoincrement())
   code      String    @unique @db.VarChar(20)  // e.g., "11.01.01", "31.71.01"
   name      String    @db.VarChar(255)         // e.g., "Bakongan", "Medan Maimun"
-  regencyId Int
+  regencyId Int       @map("regency_id")
   regency   Regency   @relation(fields: [regencyId], references: [id], onDelete: Cascade)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   villages  Village[]
 
@@ -83,6 +85,7 @@ model District {
   @@index([regencyId])
   @@index([code])
   @@index([name])
+  @@map("districts")
 }
 
 // Village (Desa/Kelurahan) - Level 4
@@ -91,16 +94,17 @@ model Village {
   code      String    @unique @db.VarChar(20)  // e.g., "11.01.01.2001", "31.71.01.1001"
   name      String    @db.VarChar(255)         // e.g., "Keude Bakongan", "Barat"
   type      String    @default("village") @db.VarChar(20) // "village" or "urban_village" (desa/kelurahan)
-  districtId Int
+  districtId Int      @map("district_id")
   district  District  @relation(fields: [districtId], references: [id], onDelete: Cascade)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@unique([code, districtId])
   @@index([districtId])
   @@index([code])
   @@index([name])
   @@index([type])
+  @@map("villages")
 }
 
 // ==================== END INDONESIAN REGIONS ====================
@@ -110,10 +114,12 @@ model Bidang {
   id          Int                  @id @default(autoincrement())
   name        String               @unique
   description String?
-  created_at   DateTime             @default(now())
-  updated_at   DateTime             @updatedAt
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
 
   trainingPrograms TrainingProgram[]
+
+  @@map("bidangs")
 }
 
 // Training Programs (e.g., K3 LISTRIK, AHLI K3 UMUM)
@@ -121,18 +127,19 @@ model TrainingProgram {
   id               Int                  @id @default(autoincrement())
   name             String               @unique
   description      String?
-  bidangId         Int
+  bidangId         Int                  @map("bidang_id")
   bidang           Bidang               @relation(fields: [bidangId], references: [id], onDelete: Cascade)
-  durationDays     Int
-  minParticipants  Int                  @default(8)
-  maxParticipants  Int                  @default(25)
+  durationDays     Int                  @map("duration_days")
+  minParticipants  Int                  @default(8) @map("min_participants")
+  maxParticipants  Int                  @default(25) @map("max_participants")
   status           String               @default("active") // active, inactive
-  created_at        DateTime             @default(now())
-  updated_at        DateTime             @updatedAt
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
   links RegistrationLink[]
 
   @@index([bidangId])
+  @@map("training_programs")
 }
 
 // Training Classes (e.g., AHLI, OPERATOR, TEKNISI)
@@ -140,61 +147,71 @@ model TrainingClass {
   id        Int                  @id @default(autoincrement())
   name      String               @unique
   level     Int                  @default(1)
-  created_at DateTime             @default(now())
-  updated_at DateTime             @updatedAt
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
 
   links RegistrationLink[]
+
+  @@map("training_classes")
 }
 
 // Personnel Types (e.g., OPERATOR, TEKNISI, AHLI K3)
 model PersonnelType {
   id        Int                  @id @default(autoincrement())
   name      String               @unique
-  created_at DateTime             @default(now())
-  updated_at DateTime             @updatedAt
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
 
   links RegistrationLink[]
+
+  @@map("personnel_types")
 }
 
 // Document Types (e.g., Surat, Ijazah, KTP)
 model DocumentType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("document_types")
 }
 
 // Equipment Types (e.g., MOBILE CRANE, TOWER CRANE)
 model EquipmentType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  bidangId  Int?
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  bidangId  Int?      @map("bidang_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("equipment_types")
 }
 
 // PIC (Person In Charge) - NEW
 model PIC {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   links RegistrationLink[]
 
   @@index([name])
+  @@map("pics")
 }
 
 // Marketing - NEW
 model Marketing {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   links RegistrationLink[]
 
   @@index([name])
+  @@map("marketings")
 }
 
 // Program Type (Reguler, Inhouse, BNSP) - NEW
@@ -202,8 +219,8 @@ model ProgramType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
   description String?
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   links RegistrationLink[]
 
@@ -214,33 +231,33 @@ model ProgramType {
 // Registration Links - Created by admin
 model RegistrationLink {
   id                   Int       @id @default(autoincrement())
-  uniqueToken          String    @unique @default(uuid())
-  trainingProgramId    Int
+  uniqueToken          String    @unique @default(uuid()) @map("unique_token")
+  trainingProgramId    Int       @map("training_program_id")
   trainingProgram      TrainingProgram  @relation(fields: [trainingProgramId], references: [id], onDelete: Cascade)
-  trainingClassId      Int
+  trainingClassId      Int       @map("training_class_id")
   trainingClass        TrainingClass    @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
-  personnelTypeId      Int
+  personnelTypeId      Int       @map("personnel_type_id")
   personnelType        PersonnelType    @relation(fields: [personnelTypeId], references: [id], onDelete: Cascade)
-  createdByAdminId     Int
+  createdByAdminId     Int       @map("created_by_admin_id")
   createdByAdmin       User     @relation(fields: [createdByAdminId], references: [id])
   
   // NEW FIELDS - Training Details
-  picId                Int?
+  picId                Int?      @map("pic_id")
   pic                  PIC?     @relation(fields: [picId], references: [id], onDelete: SetNull)
-  marketingId          Int?
+  marketingId          Int?      @map("marketing_id")
   marketing            Marketing? @relation(fields: [marketingId], references: [id], onDelete: SetNull)
-  programTypeId        Int?
+  programTypeId        Int?      @map("program_type_id")
   programType          ProgramType? @relation(fields: [programTypeId], references: [id], onDelete: SetNull)
-  tanggalPelaksanaan   DateTime?
-  tanggalSelesai       DateTime?
+  tanggalPelaksanaan   DateTime? @map("tanggal_pelaksanaan")
+  tanggalSelesai       DateTime? @map("tanggal_selesai")
   
   status               String   @default("active") // active, expired, filled
-  maxRegistrations     Int
-  currentRegistrations Int      @default(0)
-  expiryDate           DateTime
-  waGroupLink          String?
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  maxRegistrations     Int      @map("max_registrations")
+  currentRegistrations Int      @default(0) @map("current_registrations")
+  expiryDate           DateTime @map("expiry_date")
+  waGroupLink          String?  @map("wa_group_link")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   registrations        Registration[]
   requiredDocuments    RequiredDocument[]
@@ -250,113 +267,120 @@ model RegistrationLink {
   @@index([picId])
   @@index([marketingId])
   @@index([programTypeId])
+  @@map("registration_links")
 }
 
 // Required Documents per Link
 model RequiredDocument {
   id                 Int       @id @default(autoincrement())
-  registrationLinkId Int
+  registrationLinkId Int       @map("registration_link_id")
   registrationLink   RegistrationLink @relation(fields: [registrationLinkId], references: [id], onDelete: Cascade)
-  documentType       String    // surat, ijazah, ktp, sk, foto, bukti
-  displayName        String
-  isRequired         Boolean   @default(true)
-  created_at          DateTime  @default(now())
+  documentType       String    @map("document_type") // surat, ijazah, ktp, sk, foto, bukti
+  displayName        String    @map("display_name")
+  isRequired         Boolean   @default(true) @map("is_required")
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   @@index([registrationLinkId])
+  @@map("required_documents")
 }
 
 // Registrations - Trainee submissions
 model Registration {
   id                   Int       @id @default(autoincrement())
-  registrationLinkId   Int
+  registrationLinkId   Int       @map("registration_link_id")
   registrationLink     RegistrationLink @relation(fields: [registrationLinkId], references: [id], onDelete: Cascade)
-  fullName             String
+  fullName             String    @map("full_name")
   nik                  String?
   email                String
   phone                String?
-  birthDate            DateTime?
-  bloodType            String?
-  educationLevel       String?
-  companyName          String?
-  jobTitle             String?
+  birthDate            DateTime? @map("birth_date")
+  bloodType            String?   @map("blood_type")
+  educationLevel       String?   @map("education_level")
+  companyName          String?   @map("company_name")
+  jobTitle             String?   @map("job_title")
   address              String?
-  submissionStatus     String   @default("submitted") // submitted, incomplete, approved, rejected
-  submittedAt          DateTime @default(now())
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  submissionStatus     String   @default("submitted") @map("submission_status") // submitted, incomplete, approved, rejected
+  submittedAt          DateTime @default(now()) @map("submitted_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   documents    TraineeDocument[]
   certificate  Certificate?
   notifications Notification[]
 
   @@index([registrationLinkId])
+  @@map("registrations")
 }
 
 // Trainee Documents
 model TraineeDocument {
   id             Int       @id @default(autoincrement())
-  registrationId Int
+  registrationId Int       @map("registration_id")
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  documentType   String    // surat, ijazah, ktp, sk, foto, bukti
-  filePath       String    // S3 key
-  fileName       String
-  fileSize       BigInt?
-  mimeType       String?
-  uploadStatus   String   @default("uploaded") // uploaded, verified, rejected
-  uploadedAt     DateTime @default(now())
-  created_at      DateTime @default(now())
+  documentType   String    @map("document_type") // surat, ijazah, ktp, sk, foto, bukti
+  filePath       String    @map("file_path") // S3 key
+  fileName       String    @map("file_name")
+  fileSize       BigInt?   @map("file_size")
+  mimeType       String?   @map("mime_type")
+  uploadStatus   String   @default("uploaded") @map("upload_status") // uploaded, verified, rejected
+  uploadedAt     DateTime @default(now()) @map("uploaded_at")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([registrationId])
+  @@map("trainee_documents")
 }
 
 // Certificates
 model Certificate {
   id               Int       @id @default(autoincrement())
-  registrationId   Int       @unique
+  registrationId   Int       @unique @map("registration_id")
   registration     Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  certificateNumber String   @unique
-  trainingNameId   String?
-  trainingNameEn   String?
-  issueDate        DateTime
-  validityYears    Int      @default(2)
-  pdfFilePath      String
-  verificationCode String   @unique @default(cuid())
-  status           String   @default("issued") // issued, pending, revoked
-  issuedAt         DateTime @default(now())
-  created_at        DateTime @default(now())
+  certificateNumber String   @unique @map("certificate_number")
+  trainingNameId   String?   @map("training_name_id")
+  trainingNameEn   String?   @map("training_name_en")
+  issueDate        DateTime  @map("issue_date")
+  validityYears    Int      @default(2) @map("validity_years")
+  pdfFilePath      String    @map("pdf_file_path")
+  verificationCode String   @unique @default(cuid()) @map("verification_code")
+  status           String   @default("issued") @map("status") // issued, pending, revoked
+  issuedAt         DateTime @default(now()) @map("issued_at")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([registrationId])
+  @@map("certificates")
 }
 
 // Notifications
 model Notification {
   id             Int       @id @default(autoincrement())
-  registrationId Int?
+  registrationId Int?      @map("registration_id")
   registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
   type           String    // email, whatsapp
   recipient      String
   subject        String?
   content        String?
   status         String   @default("sent") // sent, failed, pending
-  sentAt         DateTime?
-  created_at      DateTime @default(now())
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([registrationId])
   @@index([status])
+  @@map("notifications")
 }
 
 // Audit Logs
 model AuditLog {
   id         Int       @id @default(autoincrement())
-  userId     Int?
+  userId     Int?      @map("user_id")
   user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   action     String    // create_link, submit_registration, upload_doc, verify_doc, issue_certificate
-  entityType String?
-  entityId   Int?
+  entityType String?   @map("entity_type")
+  entityId   Int?      @map("entity_id")
   changes    Json?
-  ipAddress  String?
-  created_at  DateTime  @default(now())
+  ipAddress  String?   @map("ip_address")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
-  @@index([created_at])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
