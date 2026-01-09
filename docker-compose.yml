@@ -61,12 +61,11 @@ services:
       dockerfile: Dockerfile.dev
     container_name: pic_frontend
     environment:
-      # FIX: Use internal Docker DNS 'backend' instead of localhost
-      # IMPORTANT: Include /api prefix because all backend routes are under /api/*
-      # Frontend API client uses this as baseURL and appends paths like /admin/auth/login
-      # Without /api, requests go to http://backend:5000/admin/auth/login (404)
-      # With /api, requests go to http://backend:5000/api/admin/auth/login (correct)
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:5000/api}
+      # FIX: Backend already has /api prefix in routes (e.g., /api/admin, /api/health)
+      # Frontend api.ts baseURL is set to this value and adds /api/* paths
+      # So total becomes: http://backend:5000 + /api + /admin/auth/login = /api/admin/auth/login ✓
+      # DO NOT add /api here - it causes /api/api/...
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:5000}
       # Memory optimization for Node.js
       NODE_OPTIONS: --max-old-space-size=2048
     ports:
