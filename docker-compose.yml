@@ -57,7 +57,7 @@ services:
       - pic_network
     # Run migrations and then start the app
     command: >-
-      sh -c "npm ci && 
+      sh -c "npm install && 
              npx prisma migrate deploy --skip-generate && 
              npm run dev"
 
