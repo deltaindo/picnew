@@ -5,6 +5,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Copy prisma schema and migrations BEFORE npm install
+# This is needed for prisma generate to work
+COPY prisma ./prisma
+
 # Install dependencies
 # Use npm install in Docker to ensure lock file is properly synced
 # In development, use: npm ci (requires lock file to be in sync)
