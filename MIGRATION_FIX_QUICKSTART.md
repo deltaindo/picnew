@@ -27,16 +27,17 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ### Files Modified
 
 1. **`backend/Dockerfile`** - Now runs migrations on startup
-2. **`docker-compose.yml`** - Added DATABASE_URL for Prisma
-3. **`MIGRATION_FIX.md`** - Documentation (new file)
+2. **`backend/package.json`** - Updated Prisma version to 5.22.0
+3. **`docker-compose.yml`** - Added DATABASE_URL for Prisma + uses npm install
+4. **`MIGRATION_FIX.md`** - Documentation (new file)
 
 ### What It Does
 
 When container starts:
 ```
-1. npm ci               → Install dependencies
-2. prisma migrate      → Apply pending migrations
-3. npm run dev         → Start application
+1. npm install              → Install dependencies (syncs lock file)
+2. prisma migrate deploy    → Apply pending migrations
+3. npm run dev              → Start application
 ```
 
 This ensures the `bidang_id` column is created in the database before the app tries to use it.
@@ -49,8 +50,8 @@ This ensures the `bidang_id` column is created in the database before the app tr
 $ docker-compose up -d --build
 
 # You should see in logs:
-# backend_1 | npm ci
-# backend_1 | added 1234 packages in 5s
+# backend_1 | npm install
+# backend_1 | added/up to date XXX packages in 5s
 # backend_1 | 
 # backend_1 | > Running Prisma migrations...
 # backend_1 | prisma:info Using environment variable DATABASE_URL
@@ -59,6 +60,33 @@ $ docker-compose up -d --build
 # backend_1 | 
 # backend_1 | > npm run dev
 # backend_1 | Server running on port 5000
+```
+
+---
+
+## ❌ Still Getting npm Error?
+
+### Error: "npm ci` can only install packages when your package.json and package-lock.json are in sync"
+
+✅ **FIXED!** Now using `npm install` instead of `npm ci` - this is already resolved in the latest commit.
+
+### Check 1: Pull Latest Changes
+```bash
+git pull origin automated-migration
+# Make sure you have commit: 5f133a166 and 7ebe23400
+```
+
+### Check 2: Rebuild Fresh
+```bash
+docker-compose down
+docker system prune -f  # Clean up docker cache
+docker-compose up -d --build
+```
+
+### Check 3: Verify Changes
+```bash
+grep "npm install" docker-compose.yml  # Should find npm install
+grep "@prisma/client" backend/package.json  # Should show ^5.22.0
 ```
 
 ---
@@ -86,19 +114,24 @@ docker-compose exec postgres psql -U postgres -d pic_app \
 ```bash
 # WARNING: This deletes the database
 docker-compose down -v
+docker system prune -f
 docker-compose up -d
 # Wait 30 seconds for migrations to run
 ```
 
 ---
 
-## Commits Applied
+## Recent Commits Applied
 
 | Commit | Message |
 |--------|----------|
-| `68a0cdb` | fix: update Dockerfile to run migrations |
-| `fee7e9b` | fix: update docker-compose.yml with DATABASE_URL |
-| `16e6c6c` | docs: add MIGRATION_FIX.md documentation |
+| `7ebe234` | fix: docker-compose use npm install |
+| `5f133a1` | fix: Dockerfile use npm install |
+| `e9a503f` | fix: package.json Prisma version 5.22.0 |
+| `4348342` | docs: quick start guide |
+| `16e6c6c` | docs: comprehensive migration fix |
+| `fee7e9b` | fix: docker-compose DATABASE_URL |
+| `68a0cdb` | fix: Dockerfile migrations |
 
 ---
 
