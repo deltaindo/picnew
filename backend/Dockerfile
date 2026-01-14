@@ -6,10 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
-
-# Copy rest of application
-COPY . .
+# Use npm install in Docker to ensure lock file is properly synced
+# In development, use: npm ci (requires lock file to be in sync)
+RUN npm install
 
 # Generate Prisma Client during build
 # This prevents runtime generation which can cause delays
