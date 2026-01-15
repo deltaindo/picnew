@@ -7,7 +7,6 @@ This document explains the auto-seeding system that was implemented to automatic
 ## What is Auto-Seeding?
 
 Auto-seeding is a mechanism that:
-
 - **Runs automatically** when the backend server starts
 - **Checks** if master data already exists
 - **Seeds data only once** - if data exists, it skips seeding
@@ -19,27 +18,22 @@ Auto-seeding is a mechanism that:
 ### New Files
 
 #### 1. `backend/prisma/auto-seed.ts`
-
 **Purpose**: Main auto-seeding logic
 
 **Functions**:
-
 - `autoSeed()` - Main function that runs on startup
 - `resetMasterData()` - Utility to reset all master data (use with caution!)
 - `checkMasterDataStatus()` - Utility to check current master data status
 
 **Seeds the following**:
-
 - **PIC (7 entries)**: Ghaida Trisnanda, Yuyun, Echasita, Erje, Nur Afidah, Hafid, Daniel Setiono
 - **Marketing (12 entries)**: Agustyani, Atikah, Anik, Yoppi, Intang, Hafid, Ali M, Erje, Indri, Bayu, Yunny, Eko
-- **Program Types (3 entries)**: Reguler, Inhouse, MitraPJK3
+- **Program Types (3 entries)**: Reguler, Inhouse, BNSP
 
 ### Modified Files
 
 #### 1. `backend/server.js`
-
 **Changes**:
-
 - Added auto-seed initialization before server starts
 - Wraps auto-seed in try-catch to prevent server crashes if seeding fails
 - Provides informative logging about seeding status
@@ -49,18 +43,18 @@ const startServer = async () => {
   try {
     // Run auto-seed before starting the server
     try {
-      const { autoSeed } = require("./prisma/auto-seed.ts");
+      const { autoSeed } = require('./prisma/auto-seed.ts');
       await autoSeed();
     } catch (seedError) {
-      console.warn("\n⚠️  Auto-seed warning:", seedError.message);
-      console.log("Continuing with server startup...\n");
+      console.warn('\n⚠️  Auto-seed warning:', seedError.message);
+      console.log('Continuing with server startup...\n');
     }
 
     app.listen(PORT, () => {
       // ... rest of startup code
     });
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };
@@ -85,14 +79,13 @@ The seeding uses Prisma's `upsert()` method:
 
 ```typescript
 await prisma.pic.upsert({
-  where: { name }, // Unique identifier
-  update: {}, // Do nothing if exists
-  create: { name }, // Create if doesn't exist
+  where: { name },      // Unique identifier
+  update: {},           // Do nothing if exists
+  create: { name },     // Create if doesn't exist
 });
 ```
 
 This ensures:
-
 - ✅ Safe to run multiple times (idempotent)
 - ✅ Won't duplicate data
 - ✅ Won't error if data already exists
@@ -166,7 +159,6 @@ services:
 ```
 
 **Usage**:
-
 ```bash
 # Everything is auto-seeded!
 docker-compose up
@@ -234,28 +226,27 @@ To modify the seeded data, edit `backend/prisma/auto-seed.ts`:
 ```typescript
 // Add new PIC
 const picNames = [
-  "Ghaida Trisnanda",
-  "New Person", // Add here
+  'Ghaida Trisnanda',
+  'New Person',  // Add here
   // ...
 ];
 
 // Add new Marketing
 const marketingNames = [
-  "Agustyani",
-  "New Marketer", // Add here
+  'Agustyani',
+  'New Marketer',  // Add here
   // ...
 ];
 
 // Add new Program Type
 const programTypes = [
-  { name: "Reguler", description: "Program Reguler" },
-  { name: "New Type", description: "Description" }, // Add here
+  { name: 'Reguler', description: 'Program Reguler' },
+  { name: 'New Type', description: 'Description' },  // Add here
   // ...
 ];
 ```
 
 Then restart the server:
-
 ```bash
 cd backend && npm run dev
 ```
@@ -265,7 +256,6 @@ cd backend && npm run dev
 ### Issue: Auto-seed doesn't run
 
 **Solution**:
-
 1. Check Prisma client is generated:
    ```bash
    cd backend
@@ -299,13 +289,12 @@ cd backend && npm run dev
 ### Issue: Data not appearing in dropdowns
 
 **Solution**:
-
 1. Check frontend is calling correct API:
    ```javascript
    // Should call these endpoints
-   fetch("/api/admin/master-data/pic");
-   fetch("/api/admin/master-data/marketing");
-   fetch("/api/admin/master-data/program_types");
+   fetch('/api/admin/master-data/pic')
+   fetch('/api/admin/master-data/marketing')
+   fetch('/api/admin/master-data/program_types')
    ```
 2. Verify authentication token is sent
 3. Check browser console for errors
@@ -316,7 +305,7 @@ cd backend && npm run dev
 ### Reset Master Data (Development Only)
 
 ```typescript
-import { resetMasterData } from "./prisma/auto-seed";
+import { resetMasterData } from './prisma/auto-seed';
 
 // WARNING: This deletes all master data!
 await resetMasterData();
@@ -325,7 +314,7 @@ await resetMasterData();
 ### Check Master Data Status
 
 ```typescript
-import { checkMasterDataStatus } from "./prisma/auto-seed";
+import { checkMasterDataStatus } from './prisma/auto-seed';
 
 const status = await checkMasterDataStatus();
 console.log(status);
@@ -341,14 +330,12 @@ console.log(status);
 ## Best Practices
 
 ✅ **Do**:
-
 - Let auto-seed run on first startup
 - Keep auto-seed.ts data synchronized with requirements
 - Use auto-seed for development environments
 - Document any changes to seed data
 
 ❌ **Don't**:
-
 - Manually edit auto-seed while server is running
 - Rely on auto-seed for production data (use migrations instead)
 - Edit auto-seed.ts and restart without Prisma regeneration
@@ -359,13 +346,11 @@ console.log(status);
 If you need to transition to manual seeding:
 
 1. Comment out auto-seed in `server.js`:
-
    ```javascript
    // await autoSeed();
    ```
 
 2. Run manual seed:
-
    ```bash
    npm run prisma:seed
    ```
@@ -387,7 +372,6 @@ If you need to transition to manual seeding:
 ## Support
 
 For issues or questions:
-
 1. Check logs in `backend/server.js` output
 2. Review `backend/prisma/auto-seed.ts` implementation
 3. Verify database connectivity

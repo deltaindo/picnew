@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -8,27 +8,27 @@ const prisma = new PrismaClient();
  */
 export async function autoSeed() {
   try {
-    console.log("\n🌱 Checking if database needs seeding...");
+    console.log('\n🌱 Checking if database needs seeding...');
 
     // Check if PIC already exists
     const picCount = await prisma.pic.count();
     if (picCount > 0) {
-      console.log("✅ Master data already exists. Skipping auto-seed.");
+      console.log('✅ Master data already exists. Skipping auto-seed.');
       return;
     }
 
-    console.log("📊 Starting auto-seeding process...\n");
+    console.log('📊 Starting auto-seeding process...\n');
 
     // 1. Seed PIC (Person In Charge)
-    console.log("📌 Seeding PIC (Person In Charge)...");
+    console.log('📌 Seeding PIC (Person In Charge)...');
     const picNames = [
-      "Ghaida Trisnanda",
-      "Yuyun",
-      "Echasita",
-      "Erje",
-      "Nur Afidah",
-      "Hafid",
-      "Daniel Setiono",
+      'Ghaida Trisnanda',
+      'Yuyun',
+      'Echasita',
+      'Erje',
+      'Nur Afidah',
+      'Hafid',
+      'Daniel Setiono',
     ];
 
     for (const name of picNames) {
@@ -41,20 +41,20 @@ export async function autoSeed() {
     console.log(`✅ PIC seeded: ${picNames.length} entries\n`);
 
     // 2. Seed Marketing
-    console.log("📢 Seeding Marketing Personnel...");
+    console.log('📢 Seeding Marketing Personnel...');
     const marketingNames = [
-      "Agustyani",
-      "Atikah",
-      "Anik",
-      "Yoppi",
-      "Intang",
-      "Hafid",
-      "Ali M",
-      "Erje",
-      "Indri",
-      "Bayu",
-      "Yunny",
-      "Eko",
+      'Agustyani',
+      'Atikah',
+      'Anik',
+      'Yoppi',
+      'Intang',
+      'Hafid',
+      'Ali M',
+      'Erje',
+      'Indri',
+      'Bayu',
+      'Yunny',
+      'Eko',
     ];
 
     for (const name of marketingNames) {
@@ -67,11 +67,11 @@ export async function autoSeed() {
     console.log(`✅ Marketing seeded: ${marketingNames.length} entries\n`);
 
     // 3. Seed Program Types
-    console.log("📋 Seeding Program Types...");
+    console.log('📋 Seeding Program Types...');
     const programTypes = [
-      { name: "Reguler", description: "Program Reguler" },
-      { name: "Inhouse", description: "Program Inhouse" },
-      { name: "Mitra PJK3", description: "Program MitraPJK3" },
+      { name: 'Reguler', description: 'Program Reguler' },
+      { name: 'Inhouse', description: 'Program Inhouse' },
+      { name: 'BNSP', description: 'Program BNSP' },
     ];
 
     for (const program of programTypes) {
@@ -83,14 +83,14 @@ export async function autoSeed() {
     }
     console.log(`✅ Program Types seeded: ${programTypes.length} entries\n`);
 
-    console.log("🎉 Auto-seeding completed successfully!\n");
-    console.log("📊 Master Data Summary:");
+    console.log('🎉 Auto-seeding completed successfully!\n');
+    console.log('📊 Master Data Summary:');
     console.log(`   • PIC: ${picNames.length} entries`);
     console.log(`   • Marketing: ${marketingNames.length} entries`);
     console.log(`   • Program Types: ${programTypes.length} entries`);
     console.log();
   } catch (error) {
-    console.error("❌ Auto-seeding failed:", error);
+    console.error('❌ Auto-seeding failed:', error);
     throw error;
   }
 }
@@ -100,20 +100,20 @@ export async function autoSeed() {
  */
 export async function resetMasterData() {
   try {
-    console.log("\n⚠️  WARNING: Deleting all master data...\n");
+    console.log('\n⚠️  WARNING: Deleting all master data...\n');
 
     await prisma.pic.deleteMany({});
-    console.log("✅ PIC cleared");
+    console.log('✅ PIC cleared');
 
     await prisma.marketing.deleteMany({});
-    console.log("✅ Marketing cleared");
+    console.log('✅ Marketing cleared');
 
     await prisma.programType.deleteMany({});
-    console.log("✅ Program Types cleared");
+    console.log('✅ Program Types cleared');
 
-    console.log("\n✅ Master data reset complete!\n");
+    console.log('\n✅ Master data reset complete!\n');
   } catch (error) {
-    console.error("❌ Reset failed:", error);
+    console.error('❌ Reset failed:', error);
     throw error;
   }
 }
@@ -134,7 +134,7 @@ export async function checkMasterDataStatus() {
       isSeeeded: picCount > 0 && marketingCount > 0 && programTypeCount > 0,
     };
   } catch (error) {
-    console.error("❌ Status check failed:", error);
+    console.error('❌ Status check failed:', error);
     throw error;
   }
 }

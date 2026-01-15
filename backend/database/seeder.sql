@@ -135,7 +135,7 @@ ON CONFLICT (name) DO NOTHING;
 INSERT INTO program_types (name, description, created_at, updated_at) VALUES 
 ('Reguler', 'Program Reguler', NOW(), NOW()),
 ('Inhouse', 'Program Inhouse', NOW(), NOW()),
-('Mitra PJK3', 'Program MitraPJK3', NOW(), NOW())
+('BNSP', 'Program BNSP', NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
 
 -- Verify seeding

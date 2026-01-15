@@ -17,7 +17,6 @@ docker-compose up
 ```
 
 **Expected output**:
-
 ```
 🌱 Checking if database needs seeding...
 📋 Starting auto-seeding process...
@@ -27,7 +26,6 @@ docker-compose up
 ```
 
 **Access**:
-
 - Frontend: http://localhost:3000
 - Backend: http://localhost:5000
 - Health Check: http://localhost:5000/health
@@ -78,7 +76,6 @@ curl http://localhost:5000/health
 ```
 
 **Expected Response**:
-
 ```json
 {
   "status": "OK",
@@ -105,7 +102,7 @@ curl http://localhost:5000/api/admin/master-data/pic \
 3. Check that dropdowns show:
    - **PIC**: 7 entries (Ghaida Trisnanda, Yuyun, etc.)
    - **Marketing**: 12 entries (Agustyani, Atikah, etc.)
-   - **Program Type**: 3 entries (Reguler, Inhouse, MitraPJK3)
+   - **Program Type**: 3 entries (Reguler, Inhouse, BNSP)
 
 ## Database Management
 
@@ -129,14 +126,13 @@ Edit `backend/prisma/auto-seed.ts`:
 ```typescript
 // Add to picNames array
 const picNames = [
-  "Ghaida Trisnanda",
-  "New PIC Name", // Add here
+  'Ghaida Trisnanda',
+  'New PIC Name',  // Add here
   // ...
 ];
 ```
 
 Restart backend:
-
 ```bash
 npm run dev
 ```
@@ -215,7 +211,6 @@ AUTO_SEED_ENABLED=true
 ### Check Seeding Status
 
 **On Startup**:
-
 ```bash
 # Watch server logs
 Npm run dev
@@ -227,7 +222,6 @@ Npm run dev
 ```
 
 **Via API**:
-
 ```bash
 # Add this endpoint to check status (future enhancement)
 GET /api/admin/status
@@ -349,7 +343,6 @@ done
 ### Database Connection Pool
 
 Add to `.env.production`:
-
 ```bash
 # Prisma connection pool
 DATABASE_POOL_SIZE=20
@@ -360,19 +353,16 @@ DATABASE_POOL_SIZE=20
 ### Regular Tasks
 
 **Weekly**:
-
 - Check logs for errors
 - Monitor database size
 - Verify backups working
 
 **Monthly**:
-
 - Review seed data accuracy
 - Update dependencies
 - Security audit
 
 **Quarterly**:
-
 - Database optimization
 - Performance testing
 - Disaster recovery drill
@@ -380,7 +370,6 @@ DATABASE_POOL_SIZE=20
 ## Support
 
 For deployment issues:
-
 1. Check logs: `docker logs pic_backend`
 2. Review docs: `docs/AUTO_SEEDING_SETUP.md`
 3. Test endpoints: `curl http://localhost:5000/health`

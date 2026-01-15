@@ -39,8 +39,6 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-pic_app}
-      # Prisma database URL for migrations
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-pic_app}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       JWT_EXPIRY: ${JWT_EXPIRY:-24h}
     ports:
@@ -55,11 +53,7 @@ services:
       - ./backend/prisma:/app/prisma
     networks:
       - pic_network
-    # Run migrations and then start the app
-    command: >-
-      sh -c "npm install && 
-             npx prisma migrate deploy --skip-generate && 
-             npm run dev"
+    command: npm run dev
 
   frontend:
     build:
@@ -67,11 +61,12 @@ services:
       dockerfile: Dockerfile.dev
     container_name: pic_frontend
     environment:
-      # FIX: Backend already has /api prefix in routes (e.g., /api/admin, /api/health)
-      # Frontend api.ts baseURL is set to this value and adds /api/* paths
-      # So total becomes: http://backend:5000 + /api + /admin/auth/login = /api/admin/auth/login ✓
-      # DO NOT add /api here - it causes /api/api/...
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:5000}
+      # FIX: Use internal Docker DNS 'backend' instead of localhost
+      # IMPORTANT: Include /api prefix because all backend routes are under /api/*
+      # Frontend API client uses this as baseURL and appends paths like /admin/auth/login
+      # Without /api, requests go to http://backend:5000/admin/auth/login (404)
+      # With /api, requests go to http://backend:5000/api/admin/auth/login (correct)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:5000/api}
       # Memory optimization for Node.js
       NODE_OPTIONS: --max-old-space-size=2048
     ports:

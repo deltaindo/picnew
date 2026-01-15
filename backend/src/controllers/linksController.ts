@@ -19,7 +19,7 @@ export const getLinks = async (req: Request, res: Response) => {
         include: {
           trainingProgram: true,
           trainingClass: true,
-          bidang: true,
+          personnelType: true,
           pic: true,
           marketing: true,
           programType: true,
@@ -51,7 +51,7 @@ export const getLinkById = async (req: Request, res: Response) => {
       include: {
         trainingProgram: true,
         trainingClass: true,
-        bidang: true,
+        personnelType: true,
         pic: true,
         marketing: true,
         programType: true,
@@ -74,13 +74,13 @@ export const getLinkById = async (req: Request, res: Response) => {
 // POST /api/admin/links - Create new registration link
 export const createLink = async (req: Request, res: Response) => {
   try {
-    const { trainingProgramId, trainingClassId, bidangId, picId, marketingId, programTypeId, tanggalPelaksanaan, tanggalSelesai, maxRegistrations, expiryDate, waGroupLink } = req.body;
+    const { trainingProgramId, trainingClassId, personnelTypeId, picId, marketingId, programTypeId, tanggalPelaksanaan, tanggalSelesai, maxRegistrations, expiryDate, waGroupLink } = req.body;
     const userId = (req as any).user?.id;
 
     // Validation
-    if (!trainingProgramId || !trainingClassId || !bidangId || !expiryDate) {
+    if (!trainingProgramId || !trainingClassId || !personnelTypeId || !expiryDate) {
       return res.status(400).json({
-        error: 'trainingProgramId, trainingClassId, bidangId, and expiryDate are required',
+        error: 'trainingProgramId, trainingClassId, personnelTypeId, and expiryDate are required',
       });
     }
 
@@ -102,20 +102,20 @@ export const createLink = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Training class not found' });
     }
 
-    // Verify bidang exists
-    const bidang = await prisma.bidang.findUnique({
-      where: { id: Number(bidangId) },
+    // Verify personnel type exists
+    const personnelType = await prisma.personnelType.findUnique({
+      where: { id: Number(personnelTypeId) },
     });
 
-    if (!bidang) {
-      return res.status(404).json({ error: 'Bidang not found' });
+    if (!personnelType) {
+      return res.status(404).json({ error: 'Personnel type not found' });
     }
 
     const link = await prisma.registrationLink.create({
       data: {
         trainingProgramId: Number(trainingProgramId),
         trainingClassId: Number(trainingClassId),
-        bidangId: Number(bidangId),
+        personnelTypeId: Number(personnelTypeId),
         picId: picId ? Number(picId) : null,
         marketingId: marketingId ? Number(marketingId) : null,
         programTypeId: programTypeId ? Number(programTypeId) : null,
@@ -129,7 +129,7 @@ export const createLink = async (req: Request, res: Response) => {
       include: {
         trainingProgram: true,
         trainingClass: true,
-        bidang: true,
+        personnelType: true,
         pic: true,
         marketing: true,
         programType: true,
@@ -149,13 +149,13 @@ export const createLink = async (req: Request, res: Response) => {
 export const updateLink = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { trainingProgramId, trainingClassId, bidangId, picId, marketingId, programTypeId, tanggalPelaksanaan, tanggalSelesai, maxRegistrations, expiryDate, waGroupLink, status } = req.body;
+    const { trainingProgramId, trainingClassId, personnelTypeId, picId, marketingId, programTypeId, tanggalPelaksanaan, tanggalSelesai, maxRegistrations, expiryDate, waGroupLink, status } = req.body;
 
     // Build update data object
     const updateData: any = {};
     if (trainingProgramId) updateData.trainingProgramId = Number(trainingProgramId);
     if (trainingClassId) updateData.trainingClassId = Number(trainingClassId);
-    if (bidangId) updateData.bidangId = Number(bidangId);
+    if (personnelTypeId) updateData.personnelTypeId = Number(personnelTypeId);
     if (picId !== undefined) updateData.picId = picId ? Number(picId) : null;
     if (marketingId !== undefined) updateData.marketingId = marketingId ? Number(marketingId) : null;
     if (programTypeId !== undefined) updateData.programTypeId = programTypeId ? Number(programTypeId) : null;
@@ -172,7 +172,7 @@ export const updateLink = async (req: Request, res: Response) => {
       include: {
         trainingProgram: true,
         trainingClass: true,
-        bidang: true,
+        personnelType: true,
         pic: true,
         marketing: true,
         programType: true,

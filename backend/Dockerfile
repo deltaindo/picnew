@@ -1,30 +1,26 @@
-FROM node:18-alpine
+# Use Debian-based Node image for better Prisma compatibility
+FROM node:18-slim
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
+# Install OpenSSL and other dependencies
+RUN apt-get update && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy prisma schema (needed for prisma generate)
-COPY prisma ./prisma
+# Copy package files
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Generate Prisma Client during build (faster than runtime)
+# Copy source code
+COPY . .
+
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Copy application code
-COPY src ./src
-COPY server.js .
-COPY db.js .
-COPY prisma-client.js .
+EXPOSE 5000
 
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
-
-# Run migrations and start the application
-CMD ["sh", "-c", "npx prisma migrate deploy --skip-generate && node server.js"]
+# Use dev mode for hot reload
+CMD ["npm", "run", "dev"]

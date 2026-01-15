@@ -213,7 +213,7 @@ model Marketing {
   @@map("marketings")
 }
 
-// Program Type (Reguler, Inhouse, MitraPJK3) - NEW
+// Program Type (Reguler, Inhouse, BNSP) - NEW
 model ProgramType {
   id        Int       @id @default(autoincrement())
   name      String    @unique
