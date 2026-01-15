@@ -1,4 +1,4 @@
-"use client";
+use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -802,41 +802,6 @@ export default function LinksPage() {
                     {bidangs.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* PIC */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    PIC (Person In Charge){" "}
-                    {masterDataLoading.pic && (
-                      <span className="text-xs text-gray-500">
-                        (loading...)
-                      </span>
-                    )}
-                  </label>
-                  {masterDataError.pic && (
-                    <p className="text-red-500 text-xs mb-2">
-                      ⚠️ {masterDataError.pic}
-                    </p>
-                  )}
-                  <select
-                    value={formData.picId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        picId: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 rounded border border-gray-300 text-gray-900 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 bg-white"
-                    disabled={isSubmitting || masterDataLoading.pic}
-                  >
-                    <option value="">-- Pilih PIC --</option>
-                    {masterData.pic.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
                       </option>
                     ))}
                   </select>
